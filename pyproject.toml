@@ -12,6 +12,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.2.4",
+    "sqlalchemy>=2.1.6",
 ]
 
 [dependency-groups]
