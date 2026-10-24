@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from newhope_schoolmanagenment.api.routes import health
+from newhope_schoolmanagenment.api.routes import health, students
 from newhope_schoolmanagenment.core import database
 
 
@@ -16,6 +16,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Newhope School Management", lifespan=lifespan)
 
 app.include_router(health.router)
+app.include_router(students.router)
 
 
 @app.get("/")

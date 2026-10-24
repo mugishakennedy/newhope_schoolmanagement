@@ -23,6 +23,13 @@ class Settings(BaseSettings):
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
 
+    @property
+    def database_async_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
+
 
 @lru_cache
 def get_settings() -> Settings:

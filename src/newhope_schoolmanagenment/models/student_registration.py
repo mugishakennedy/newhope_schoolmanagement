@@ -12,7 +12,9 @@ class StudentRegistration(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     student_name: Mapped[str] = mapped_column(String(100), nullable=False)
     student_email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    registration_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     course_id: Mapped[int] = mapped_column(Integer, nullable=False)
 
     def __repr__(self) -> str:
