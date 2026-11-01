@@ -12,6 +12,10 @@ venv/
 # Environment files
 .env
 
+# uv lock and project metadata
+uv.lock
+pyproject.toml
+
 # OS / editor
 .DS_Store
 .idea/
