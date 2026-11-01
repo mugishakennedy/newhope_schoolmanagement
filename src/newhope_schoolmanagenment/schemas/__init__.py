@@ -1,46 +1,59 @@
-from newhope_schoolmanagenment.schemas.assignments import (
+from newhope_schoolmanagenment.schemas.assignment import (
+    AssignmentCreate,
     AssignmentRead,
-    AssignmentSummary,
 )
 from newhope_schoolmanagenment.schemas.auth import (
     MessageResponse,
     TokenResponse,
 )
-from newhope_schoolmanagenment.schemas.classes import ClassRead
-from newhope_schoolmanagenment.schemas.modules import ModuleRead, ModuleSummary
+from newhope_schoolmanagenment.schemas.class_ import ClassCreate, ClassRead
+from newhope_schoolmanagenment.schemas.dos import (
+    DOSAccountCreate,
+    DOSCreate,
+    DOSRead,
+)
+from newhope_schoolmanagenment.schemas.module import ModuleCreate, ModuleRead
 from newhope_schoolmanagenment.schemas.student_registration import (
     StudentLoginRequest,
     StudentLoginResponse,
     StudentRegistrationCreate,
     StudentRegistrationRead,
 )
-from newhope_schoolmanagenment.schemas.submissions import (
+from newhope_schoolmanagenment.schemas.submission import (
     SubmissionCreate,
+    SubmissionGradeUpdate,
     SubmissionRead,
-    SubmissionUpdate,
-    SubmissionWithAssignment,
 )
-from newhope_schoolmanagenment.schemas.teachers import (
+from newhope_schoolmanagenment.schemas.teacher import (
+    TeacherCreate,
     TeacherRead,
-    TeacherSummary,
+)
+from newhope_schoolmanagenment.schemas.teacher_module import (
+    TeacherModuleAssign,
+    TeacherModuleRead,
 )
 
 __all__ = [
+    "AssignmentCreate",
     "AssignmentRead",
-    "AssignmentSummary",
+    "ClassCreate",
     "ClassRead",
+    "DOSAccountCreate",
+    "DOSCreate",
+    "DOSRead",
     "MessageResponse",
+    "ModuleCreate",
     "ModuleRead",
-    "ModuleSummary",
     "StudentLoginRequest",
     "StudentLoginResponse",
     "StudentRegistrationCreate",
     "StudentRegistrationRead",
     "SubmissionCreate",
+    "SubmissionGradeUpdate",
     "SubmissionRead",
-    "SubmissionUpdate",
-    "SubmissionWithAssignment",
+    "TeacherCreate",
+    "TeacherModuleAssign",
+    "TeacherModuleRead",
     "TeacherRead",
-    "TeacherSummary",
     "TokenResponse",
 ]

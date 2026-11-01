@@ -1,6 +1,21 @@
-from newhope_schoolmanagenment.controllers import student, student_portal
+from newhope_schoolmanagenment.controllers import (
+    assignment,
+    class_,
+    dashboard,
+    dos,
+    module,
+    student,
+    submission,
+    teacher,
+)
 
 __all__ = [
+    "assignment",
+    "class_",
+    "dashboard",
+    "dos",
+    "module",
     "student",
-    "student_portal",
+    "submission",
+    "teacher",
 ]

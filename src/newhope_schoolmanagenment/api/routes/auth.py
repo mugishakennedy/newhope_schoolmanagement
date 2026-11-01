@@ -12,10 +12,10 @@ from newhope_schoolmanagenment.api.deps import (
 from newhope_schoolmanagenment.api.tokens import (
     clear_refresh_cookie,
     issue_token_response,
-    refresh_cookie_name,
     set_refresh_cookie,
 )
 from newhope_schoolmanagenment.controllers import student as student_controller
+from newhope_schoolmanagenment.core.config import get_settings
 from newhope_schoolmanagenment.core.security import decode_token
 from newhope_schoolmanagenment.models import Student
 from newhope_schoolmanagenment.schemas import (
@@ -40,7 +40,7 @@ async def issue_access_token(
     student = await student_controller.authenticate_student(
         session, form_data.username, form_data.password
     )
-    token_response, refresh_token = issue_token_response(student.id)
+    token_response, refresh_token = issue_token_response(student.id, "student")
     set_refresh_cookie(response, refresh_token)
     return token_response
 
@@ -53,22 +53,31 @@ async def issue_access_token(
 async def refresh_access_token(
     request: Request, response: Response, session: SessionDep
 ) -> TokenResponse:
-    refresh_token = request.cookies.get(refresh_cookie_name())
+    settings = get_settings()
+    refresh_token = request.cookies.get(settings.refresh_cookie_name)
     if refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing refresh token",
         )
 
-    student_id = decode_token(refresh_token, "refresh")
-    student = await session.get(Student, student_id)
+    payload = decode_token(refresh_token, "refresh")
+    if payload.get("role") != "student":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+
+    student = await session.get(Student, int(payload["sub"]))
     if student is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
 
-    token_response, new_refresh_token = issue_token_response(student.id)
+    token_response, new_refresh_token = issue_token_response(
+        student.id, "student"
+    )
     set_refresh_cookie(response, new_refresh_token)
     return token_response
 

@@ -33,8 +33,15 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
-    refresh_cookie_path: str = "/auth"
+    seed_default_dos: bool = True
+    default_dos_name: str = "Default DOS"
+    default_dos_email: str = "dos@gmail.com"
+    default_dos_password: str = "darkone123@"
+
     refresh_cookie_name: str = "newhope_refresh"
+    refresh_cookie_path: str = "/auth"
+    dos_refresh_cookie_name: str = "newhope_dos_refresh"
+    dos_refresh_cookie_path: str = "/dos/auth"
     cookie_secure: bool = False
     cookie_samesite: str = "lax"
 

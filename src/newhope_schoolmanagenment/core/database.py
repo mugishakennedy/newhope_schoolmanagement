@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import asyncpg
 from sqlalchemy.ext.asyncio import (
@@ -60,6 +61,14 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
+    if _session_factory is None:
+        raise RuntimeError("Database session factory is not initialized")
+    async with _session_factory() as session:
+        yield session
+
+
+@asynccontextmanager
+async def session_scope() -> AsyncIterator[AsyncSession]:
     if _session_factory is None:
         raise RuntimeError("Database session factory is not initialized")
     async with _session_factory() as session:
