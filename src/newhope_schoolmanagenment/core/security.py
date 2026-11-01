@@ -17,6 +17,7 @@ TokenType = Literal["access", "refresh"]
 _password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_dos_scheme = OAuth2PasswordBearer(tokenUrl="/dos/auth/token")
 
 _credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -32,19 +33,22 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, password_hash: str) -> tuple[bool, str | None]:
     try:
         return _password_hash.verify_and_update(password, password_hash)
-    except PwdlibError, ValueError:
+    except (PwdlibError, ValueError):
         return False, None
 
 
 def _create_token(
-    student_id: int, token_type: TokenType, expires_delta: timedelta
+    user_id: int,
+    role: str,
+    token_type: TokenType,
+    expires_delta: timedelta,
 ) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
-        "sub": str(student_id),
+        "sub": str(user_id),
         "type": token_type,
-        "role": "student",
+        "role": role,
         "iat": now,
         "exp": now + expires_delta,
         "jti": uuid4().hex,
@@ -52,25 +56,27 @@ def _create_token(
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(student_id: int) -> str:
+def create_access_token(user_id: int, role: str) -> str:
     settings = get_settings()
     return _create_token(
-        student_id,
+        user_id,
+        role,
         "access",
         timedelta(minutes=settings.access_token_expire_minutes),
     )
 
 
-def create_refresh_token(student_id: int) -> str:
+def create_refresh_token(user_id: int, role: str) -> str:
     settings = get_settings()
     return _create_token(
-        student_id,
+        user_id,
+        role,
         "refresh",
         timedelta(days=settings.refresh_token_expire_days),
     )
 
 
-def decode_token(token: str, expected_type: TokenType) -> int:
+def decode_token(token: str, expected_type: TokenType) -> dict[str, Any]:
     settings = get_settings()
     try:
         payload = jwt.decode(
@@ -81,11 +87,15 @@ def decode_token(token: str, expected_type: TokenType) -> int:
 
     if payload.get("type") != expected_type:
         raise _credentials_exception
+    if "sub" not in payload or "role" not in payload:
+        raise _credentials_exception
 
     try:
-        return int(payload["sub"])
-    except (KeyError, TypeError, ValueError) as exc:
+        int(payload["sub"])
+    except (TypeError, ValueError) as exc:
         raise _credentials_exception from exc
+
+    return payload
 
 
 def access_token_expires_in() -> int:

@@ -10,34 +10,43 @@ from newhope_schoolmanagenment.core.security import (
 from newhope_schoolmanagenment.schemas import TokenResponse
 
 
-def issue_token_response(student_id: int) -> tuple[TokenResponse, str]:
-    refresh_token = create_refresh_token(student_id)
+def issue_token_response(user_id: int, role: str) -> tuple[TokenResponse, str]:
+    refresh_token = create_refresh_token(user_id, role)
     token_response = TokenResponse(
-        access_token=create_access_token(student_id),
+        access_token=create_access_token(user_id, role),
         expires_in=access_token_expires_in(),
         refresh_expires_in=refresh_token_expires_in(),
     )
     return token_response, refresh_token
 
 
-def set_refresh_cookie(response: Response, refresh_token: str) -> None:
+def set_refresh_cookie(
+    response: Response,
+    refresh_token: str,
+    cookie_name: str | None = None,
+    cookie_path: str | None = None,
+) -> None:
     settings = get_settings()
     response.set_cookie(
-        key=settings.refresh_cookie_name,
+        key=cookie_name or settings.refresh_cookie_name,
         value=refresh_token,
         max_age=refresh_token_expires_in(),
         httponly=True,
         secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
-        path=settings.refresh_cookie_path,
+        path=cookie_path or settings.refresh_cookie_path,
     )
 
 
-def clear_refresh_cookie(response: Response) -> None:
+def clear_refresh_cookie(
+    response: Response,
+    cookie_name: str | None = None,
+    cookie_path: str | None = None,
+) -> None:
     settings = get_settings()
     response.delete_cookie(
-        key=settings.refresh_cookie_name,
-        path=settings.refresh_cookie_path,
+        key=cookie_name or settings.refresh_cookie_name,
+        path=cookie_path or settings.refresh_cookie_path,
         secure=settings.cookie_secure,
         httponly=True,
         samesite=settings.cookie_samesite,

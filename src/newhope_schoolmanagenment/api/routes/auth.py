@@ -40,7 +40,7 @@ async def issue_access_token(
     student = await student_controller.authenticate_student(
         session, form_data.username, form_data.password
     )
-    token_response, refresh_token = issue_token_response(student.id)
+    token_response, refresh_token = issue_token_response(student.id, "student")
     set_refresh_cookie(response, refresh_token)
     return token_response
 
@@ -61,15 +61,23 @@ async def refresh_access_token(
             detail="Missing refresh token",
         )
 
-    student_id = decode_token(refresh_token, "refresh")
-    student = await session.get(Student, student_id)
+    payload = decode_token(refresh_token, "refresh")
+    if payload.get("role") != "student":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+        )
+
+    student = await session.get(Student, int(payload["sub"]))
     if student is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
 
-    token_response, new_refresh_token = issue_token_response(student.id)
+    token_response, new_refresh_token = issue_token_response(
+        student.id, "student"
+    )
     set_refresh_cookie(response, new_refresh_token)
     return token_response
 

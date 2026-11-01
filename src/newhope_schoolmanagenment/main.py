@@ -4,7 +4,20 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from newhope_schoolmanagenment.api.routes import auth, health, students
+from newhope_schoolmanagenment.api.routes import (
+    assignments,
+    auth,
+    classes,
+    dashboard,
+    dos_accounts,
+    dos_auth,
+    health,
+    modules,
+    students,
+    submissions,
+    teachers,
+)
+from newhope_schoolmanagenment.controllers import dos as dos_controller
 from newhope_schoolmanagenment.core import database
 from newhope_schoolmanagenment.core.config import get_settings
 
@@ -12,6 +25,8 @@ from newhope_schoolmanagenment.core.config import get_settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await database.connect()
+    async with database.session_scope() as session:
+        await dos_controller.ensure_default_dos(session)
     yield
     await database.disconnect()
 
@@ -49,6 +64,14 @@ async def add_security_headers(request: Request, call_next):
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(students.router)
+app.include_router(dos_auth.router)
+app.include_router(dos_accounts.router)
+app.include_router(teachers.router)
+app.include_router(classes.router)
+app.include_router(modules.router)
+app.include_router(assignments.router)
+app.include_router(submissions.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/")

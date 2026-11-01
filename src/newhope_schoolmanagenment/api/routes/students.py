@@ -46,7 +46,9 @@ async def login_student(
     student = await student_controller.authenticate_student(
         session, data.email, data.password
     )
-    token_response, refresh_token = issue_token_response(student.id)
+    token_response, refresh_token = issue_token_response(
+        student.id, "student"
+    )
     set_refresh_cookie(response, refresh_token)
     return StudentLoginResponse(
         message="Login successful",
