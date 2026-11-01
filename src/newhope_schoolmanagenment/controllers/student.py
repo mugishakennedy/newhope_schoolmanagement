@@ -1,29 +1,14 @@
-import bcrypt
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from newhope_schoolmanagenment.core.security import hash_password, verify_password
 from newhope_schoolmanagenment.models import Student
 from newhope_schoolmanagenment.schemas import (
     StudentLoginRequest,
     StudentRegistrationCreate,
 )
-
-
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(
-        password.encode("utf-8"), bcrypt.gensalt()
-    ).decode("utf-8")
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    try:
-        return bcrypt.checkpw(
-            password.encode("utf-8"), password_hash.encode("utf-8")
-        )
-    except ValueError:
-        return False
 
 
 async def create_student(
@@ -38,10 +23,7 @@ async def create_student(
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A student with this email or registration number "
-                "already exists"
-            ),
+            detail=("A student with this email or registration number already exists"),
         )
 
     student = Student(
@@ -67,21 +49,34 @@ async def create_student(
     return student
 
 
-async def login_student(
-    session: AsyncSession, data: StudentLoginRequest
+async def authenticate_student(
+    session: AsyncSession, email: str, password: str
 ) -> Student:
-    result = await session.execute(
-        select(Student).where(Student.email == data.email)
-    )
+    result = await session.execute(select(Student).where(Student.email == email))
     student = result.scalar_one_or_none()
-    if student is None or not verify_password(
-        data.password, student.password_hash
-    ):
+    if student is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
+
+    valid, updated_hash = verify_password(password, student.password_hash)
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    if updated_hash is not None:
+        student.password_hash = updated_hash
+        await session.commit()
+        await session.refresh(student)
+
     return student
+
+
+async def login_student(session: AsyncSession, data: StudentLoginRequest) -> Student:
+    return await authenticate_student(session, data.email, data.password)
 
 
 async def list_students(session: AsyncSession) -> list[Student]:
