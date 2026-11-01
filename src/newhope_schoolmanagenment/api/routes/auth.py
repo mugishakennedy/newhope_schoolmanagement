@@ -12,10 +12,10 @@ from newhope_schoolmanagenment.api.deps import (
 from newhope_schoolmanagenment.api.tokens import (
     clear_refresh_cookie,
     issue_token_response,
+    refresh_cookie_name,
     set_refresh_cookie,
 )
 from newhope_schoolmanagenment.controllers import student as student_controller
-from newhope_schoolmanagenment.core.config import get_settings
 from newhope_schoolmanagenment.core.security import decode_token
 from newhope_schoolmanagenment.models import Student
 from newhope_schoolmanagenment.schemas import (
@@ -53,8 +53,7 @@ async def issue_access_token(
 async def refresh_access_token(
     request: Request, response: Response, session: SessionDep
 ) -> TokenResponse:
-    settings = get_settings()
-    refresh_token = request.cookies.get(settings.refresh_cookie_name)
+    refresh_token = request.cookies.get(refresh_cookie_name())
     if refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

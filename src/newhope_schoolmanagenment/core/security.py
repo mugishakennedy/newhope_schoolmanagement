@@ -16,7 +16,7 @@ TokenType = Literal["access", "refresh"]
 
 _password_hash = PasswordHash((Argon2Hasher(), BcryptHasher()))
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+student_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 _credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -37,14 +37,15 @@ def verify_password(password: str, password_hash: str) -> tuple[bool, str | None
 
 
 def _create_token(
-    student_id: int, token_type: TokenType, expires_delta: timedelta
+    subject_id: int,
+    token_type: TokenType,
+    expires_delta: timedelta,
 ) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
-        "sub": str(student_id),
+        "sub": str(subject_id),
         "type": token_type,
-        "role": "student",
         "iat": now,
         "exp": now + expires_delta,
         "jti": uuid4().hex,
@@ -52,19 +53,19 @@ def _create_token(
     return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(student_id: int) -> str:
+def create_access_token(subject_id: int) -> str:
     settings = get_settings()
     return _create_token(
-        student_id,
+        subject_id,
         "access",
         timedelta(minutes=settings.access_token_expire_minutes),
     )
 
 
-def create_refresh_token(student_id: int) -> str:
+def create_refresh_token(subject_id: int) -> str:
     settings = get_settings()
     return _create_token(
-        student_id,
+        subject_id,
         "refresh",
         timedelta(days=settings.refresh_token_expire_days),
     )

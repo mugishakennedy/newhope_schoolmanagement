@@ -12,7 +12,6 @@ from newhope_schoolmanagenment.api.tokens import (
     set_refresh_cookie,
 )
 from newhope_schoolmanagenment.controllers import student as student_controller
-from newhope_schoolmanagenment.models import Student
 from newhope_schoolmanagenment.schemas import (
     StudentLoginRequest,
     StudentLoginResponse,
@@ -64,11 +63,6 @@ async def login_student(
 )
 async def list_students(session: SessionDep) -> list[StudentRegistrationRead]:
     return await student_controller.list_students(session)
-
-
-@router.get("/me", response_model=StudentRegistrationRead)
-async def read_current_student(current_student: CurrentStudent) -> Student:
-    return current_student
 
 
 @router.get("/{student_id}", response_model=StudentRegistrationRead)

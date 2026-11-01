@@ -10,10 +10,14 @@ from newhope_schoolmanagenment.core.security import (
 from newhope_schoolmanagenment.schemas import TokenResponse
 
 
-def issue_token_response(student_id: int) -> tuple[TokenResponse, str]:
-    refresh_token = create_refresh_token(student_id)
+def refresh_cookie_name() -> str:
+    return get_settings().refresh_cookie_name
+
+
+def issue_token_response(subject_id: int) -> tuple[TokenResponse, str]:
+    refresh_token = create_refresh_token(subject_id)
     token_response = TokenResponse(
-        access_token=create_access_token(student_id),
+        access_token=create_access_token(subject_id),
         expires_in=access_token_expires_in(),
         refresh_expires_in=refresh_token_expires_in(),
     )

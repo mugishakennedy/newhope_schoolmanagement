@@ -1,0 +1,109 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Query, status
+
+from newhope_schoolmanagenment.api.deps import CurrentStudent, SessionDep
+from newhope_schoolmanagenment.controllers import student_portal as portal
+from newhope_schoolmanagenment.models import (
+    Assignment,
+    Class,
+    Module,
+    Student,
+    Submission,
+    Teacher,
+)
+from newhope_schoolmanagenment.schemas import (
+    AssignmentRead,
+    ClassRead,
+    ModuleRead,
+    StudentRegistrationRead,
+    SubmissionCreate,
+    SubmissionRead,
+    SubmissionUpdate,
+    SubmissionWithAssignment,
+    TeacherRead,
+)
+
+router = APIRouter(prefix="/students/me", tags=["student portal"])
+
+
+@router.get("", response_model=StudentRegistrationRead)
+async def read_current_student(current_student: CurrentStudent) -> Student:
+    return current_student
+
+
+@router.get("/class", response_model=ClassRead)
+async def read_student_class(
+    current_student: CurrentStudent, session: SessionDep
+) -> Class:
+    return await portal.get_student_class(session, current_student)
+
+
+@router.get("/modules", response_model=list[ModuleRead])
+async def list_student_modules(
+    current_student: CurrentStudent, session: SessionDep
+) -> list[Module]:
+    return await portal.list_student_modules(session, current_student)
+
+
+@router.get("/teachers", response_model=list[TeacherRead])
+async def list_student_teachers(
+    current_student: CurrentStudent, session: SessionDep
+) -> list[Teacher]:
+    return await portal.list_student_teachers(session, current_student)
+
+
+@router.get("/assignments", response_model=list[AssignmentRead])
+async def list_student_assignments(
+    current_student: CurrentStudent,
+    session: SessionDep,
+    module_id: Annotated[int | None, Query(gt=0)] = None,
+) -> list[Assignment]:
+    return await portal.list_student_assignments(session, current_student, module_id)
+
+
+@router.get("/assignments/{assignment_id}", response_model=AssignmentRead)
+async def read_student_assignment(
+    assignment_id: int, current_student: CurrentStudent, session: SessionDep
+) -> Assignment:
+    return await portal.get_student_assignment(session, current_student, assignment_id)
+
+
+@router.post(
+    "/assignments/{assignment_id}/submissions",
+    response_model=SubmissionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_assignment(
+    assignment_id: int,
+    data: SubmissionCreate,
+    current_student: CurrentStudent,
+    session: SessionDep,
+) -> Submission:
+    return await portal.submit_assignment(session, current_student, assignment_id, data)
+
+
+@router.get("/submissions", response_model=list[SubmissionWithAssignment])
+async def list_student_submissions(
+    current_student: CurrentStudent, session: SessionDep
+) -> list[Submission]:
+    return await portal.list_student_submissions(session, current_student)
+
+
+@router.get("/submissions/{submission_id}", response_model=SubmissionWithAssignment)
+async def read_student_submission(
+    submission_id: int, current_student: CurrentStudent, session: SessionDep
+) -> Submission:
+    return await portal.get_student_submission(session, current_student, submission_id)
+
+
+@router.patch("/submissions/{submission_id}", response_model=SubmissionRead)
+async def update_student_submission(
+    submission_id: int,
+    data: SubmissionUpdate,
+    current_student: CurrentStudent,
+    session: SessionDep,
+) -> Submission:
+    return await portal.update_student_submission(
+        session, current_student, submission_id, data
+    )

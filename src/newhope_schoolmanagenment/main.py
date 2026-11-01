@@ -4,7 +4,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from newhope_schoolmanagenment.api.routes import auth, health, students
+from newhope_schoolmanagenment.api.routes import (
+    auth,
+    health,
+    student_portal,
+    students,
+)
 from newhope_schoolmanagenment.core import database
 from newhope_schoolmanagenment.core.config import get_settings
 
@@ -48,6 +53,7 @@ async def add_security_headers(request: Request, call_next):
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(student_portal.router)
 app.include_router(students.router)
 
 

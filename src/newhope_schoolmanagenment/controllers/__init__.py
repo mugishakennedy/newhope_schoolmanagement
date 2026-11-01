@@ -1,3 +1,6 @@
-from newhope_schoolmanagenment.controllers import student
+from newhope_schoolmanagenment.controllers import student, student_portal
 
-__all__ = ["student"]
+__all__ = [
+    "student",
+    "student_portal",
+]
