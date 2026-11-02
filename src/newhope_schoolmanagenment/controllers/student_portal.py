@@ -14,7 +14,10 @@ from newhope_schoolmanagenment.models import (
     Submission,
     Teacher,
 )
-from newhope_schoolmanagenment.schemas import SubmissionCreate, SubmissionUpdate
+from newhope_schoolmanagenment.schemas.submissions import (
+    SubmissionCreate,
+    SubmissionUpdate,
+)
 
 
 def _assignment_options() -> tuple:

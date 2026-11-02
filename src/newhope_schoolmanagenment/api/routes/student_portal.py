@@ -12,24 +12,20 @@ from newhope_schoolmanagenment.models import (
     Submission,
     Teacher,
 )
-from newhope_schoolmanagenment.schemas import (
-    AssignmentRead,
-    ClassRead,
-    ModuleRead,
-    StudentRegistrationRead,
+from newhope_schoolmanagenment.schemas.assignments import (
+    AssignmentRead as AssignmentDetail,
+)
+from newhope_schoolmanagenment.schemas.classes import ClassRead
+from newhope_schoolmanagenment.schemas.modules import ModuleRead
+from newhope_schoolmanagenment.schemas.submissions import (
     SubmissionCreate,
     SubmissionRead,
     SubmissionUpdate,
     SubmissionWithAssignment,
-    TeacherRead,
 )
+from newhope_schoolmanagenment.schemas.teachers import TeacherRead
 
 router = APIRouter(prefix="/students/me", tags=["student portal"])
-
-
-@router.get("", response_model=StudentRegistrationRead)
-async def read_current_student(current_student: CurrentStudent) -> Student:
-    return current_student
 
 
 @router.get("/class", response_model=ClassRead)
@@ -53,20 +49,27 @@ async def list_student_teachers(
     return await portal.list_student_teachers(session, current_student)
 
 
-@router.get("/assignments", response_model=list[AssignmentRead])
+@router.get("/assignments", response_model=list[AssignmentDetail])
 async def list_student_assignments(
     current_student: CurrentStudent,
     session: SessionDep,
     module_id: Annotated[int | None, Query(gt=0)] = None,
 ) -> list[Assignment]:
-    return await portal.list_student_assignments(session, current_student, module_id)
+    return await portal.list_student_assignments(
+        session, current_student, module_id
+    )
 
 
-@router.get("/assignments/{assignment_id}", response_model=AssignmentRead)
+@router.get(
+    "/assignments/{assignment_id}",
+    response_model=AssignmentDetail,
+)
 async def read_student_assignment(
     assignment_id: int, current_student: CurrentStudent, session: SessionDep
 ) -> Assignment:
-    return await portal.get_student_assignment(session, current_student, assignment_id)
+    return await portal.get_student_assignment(
+        session, current_student, assignment_id
+    )
 
 
 @router.post(
@@ -80,24 +83,39 @@ async def submit_assignment(
     current_student: CurrentStudent,
     session: SessionDep,
 ) -> Submission:
-    return await portal.submit_assignment(session, current_student, assignment_id, data)
+    return await portal.submit_assignment(
+        session, current_student, assignment_id, data
+    )
 
 
-@router.get("/submissions", response_model=list[SubmissionWithAssignment])
+@router.get(
+    "/submissions",
+    response_model=list[SubmissionWithAssignment],
+)
 async def list_student_submissions(
     current_student: CurrentStudent, session: SessionDep
 ) -> list[Submission]:
-    return await portal.list_student_submissions(session, current_student)
+    return await portal.list_student_submissions(
+        session, current_student
+    )
 
 
-@router.get("/submissions/{submission_id}", response_model=SubmissionWithAssignment)
+@router.get(
+    "/submissions/{submission_id}",
+    response_model=SubmissionWithAssignment,
+)
 async def read_student_submission(
     submission_id: int, current_student: CurrentStudent, session: SessionDep
 ) -> Submission:
-    return await portal.get_student_submission(session, current_student, submission_id)
+    return await portal.get_student_submission(
+        session, current_student, submission_id
+    )
 
 
-@router.patch("/submissions/{submission_id}", response_model=SubmissionRead)
+@router.patch(
+    "/submissions/{submission_id}",
+    response_model=SubmissionRead,
+)
 async def update_student_submission(
     submission_id: int,
     data: SubmissionUpdate,

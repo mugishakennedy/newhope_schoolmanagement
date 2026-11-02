@@ -11,10 +11,14 @@ from newhope_schoolmanagenment.api.routes import (
     dashboard,
     dos_accounts,
     dos_auth,
+    dos_students,
     health,
     modules,
+    public,
+    student_portal,
     students,
     submissions,
+    teacher_portal,
     teachers,
 )
 from newhope_schoolmanagenment.controllers import dos as dos_controller
@@ -62,10 +66,14 @@ async def add_security_headers(request: Request, call_next):
 
 
 app.include_router(health.router)
+app.include_router(public.router)
 app.include_router(auth.router)
+app.include_router(student_portal.router)
 app.include_router(students.router)
+app.include_router(teacher_portal.router)
 app.include_router(dos_auth.router)
 app.include_router(dos_accounts.router)
+app.include_router(dos_students.router)
 app.include_router(teachers.router)
 app.include_router(classes.router)
 app.include_router(modules.router)

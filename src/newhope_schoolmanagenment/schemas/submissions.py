@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 from newhope_schoolmanagenment.schemas.assignments import AssignmentSummary
+from newhope_schoolmanagenment.schemas.student_registration import StudentSummary
 
 
 class SubmissionCreate(BaseModel):
@@ -28,3 +29,8 @@ class SubmissionRead(BaseModel):
 
 class SubmissionWithAssignment(SubmissionRead):
     assignment: AssignmentSummary
+
+
+class SubmissionWithStudent(SubmissionRead):
+    assignment: AssignmentSummary
+    student: StudentSummary
