@@ -54,6 +54,12 @@ def get_pool() -> asyncpg.Pool:
     return _pool
 
 
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    if _session_factory is None:
+        raise RuntimeError("Database session factory is not initialized")
+    return _session_factory
+
+
 async def get_session() -> AsyncIterator[AsyncSession]:
     if _session_factory is None:
         raise RuntimeError("Database session factory is not initialized")

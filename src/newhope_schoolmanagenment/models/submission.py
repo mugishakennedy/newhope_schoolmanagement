@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -11,9 +14,13 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from newhope_schoolmanagenment.models.base import Base
+
+if TYPE_CHECKING:
+    from newhope_schoolmanagenment.models.assignment import Assignment
+    from newhope_schoolmanagenment.models.student_registration import Student
 
 
 class Submission(Base):
@@ -47,6 +54,9 @@ class Submission(Base):
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
     )
+
+    assignment: Mapped[Assignment] = relationship(back_populates="submissions")
+    student: Mapped[Student] = relationship(back_populates="submissions")
 
     def __repr__(self) -> str:
         return f"<Submission(id={self.id}, grade={self.grade})>"

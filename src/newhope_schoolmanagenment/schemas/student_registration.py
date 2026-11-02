@@ -16,6 +16,14 @@ class StudentLoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=72)
 
 
+class StudentSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    full_name: str
+    registration_no: str
+
+
 class StudentRegistrationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
