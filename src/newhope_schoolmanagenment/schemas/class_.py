@@ -17,3 +17,10 @@ class ClassRead(BaseModel):
     id: int
     class_name: str
     academic_year: str
+
+
+class ClassStats(ClassRead):
+    students: int = 0
+    teachers: int = 0
+    modules: int = 0
+    assignments: int = 0

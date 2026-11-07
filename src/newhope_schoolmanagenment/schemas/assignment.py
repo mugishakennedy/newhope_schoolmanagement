@@ -9,8 +9,7 @@ def _normalize_deadline(value: datetime | None) -> datetime | None:
     return value.astimezone(UTC).replace(tzinfo=None)
 
 
-class AssignmentCreate(BaseModel):
-    teacher_id: int
+class AssignmentBase(BaseModel):
     module_id: int
     class_id: int
     title: str = Field(min_length=1, max_length=200)
@@ -61,6 +60,14 @@ class TeacherAssignmentUpdate(BaseModel):
     @classmethod
     def normalize_deadline(cls, value: datetime | None) -> datetime | None:
         return _normalize_deadline(value)
+
+
+class AssignmentCreate(AssignmentBase):
+    teacher_id: int
+
+
+class TeacherAssignmentCreate(AssignmentBase):
+    """Assignment created by a teacher; the teacher comes from the token."""
 
 
 class AssignmentRead(BaseModel):

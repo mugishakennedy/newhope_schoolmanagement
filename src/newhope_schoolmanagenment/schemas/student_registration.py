@@ -11,14 +11,6 @@ class StudentRegistrationCreate(BaseModel):
     class_id: int | None = None
 
 
-class StudentUpdate(BaseModel):
-    full_name: str | None = Field(default=None, min_length=1, max_length=150)
-    email: str | None = Field(default=None, min_length=3, max_length=150)
-    registration_no: str | None = Field(default=None, min_length=1, max_length=50)
-    class_id: int | None = None
-    password: str | None = Field(default=None, min_length=8, max_length=72)
-
-
 class StudentLoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=150)
     password: str = Field(min_length=1, max_length=72)

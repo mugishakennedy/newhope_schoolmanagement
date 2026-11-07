@@ -32,6 +32,7 @@ async def update_student(
     session: SessionDep,
 ) -> StudentRegistrationRead:
     return await student_controller.update_student(session, student_id, data)
+<<<<<<< HEAD
 
 
 @router.delete("/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -39,3 +40,5 @@ async def delete_student(
     student_id: int, current_dos: CurrentDOS, session: SessionDep
 ) -> None:
     await student_controller.delete_student(session, student_id)
+=======
+>>>>>>> bcefb46 (new_upd)

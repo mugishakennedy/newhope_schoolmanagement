@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { api, errorMessage } from '../../api/client'
-import type { ClassRead } from '../../api/types'
+import type { ClassRead, ClassStats } from '../../api/types'
 import {
   Alert,
   Badge,
@@ -18,9 +18,9 @@ import {
 import { useApi } from '../../hooks/useApi'
 
 export function DOSClasses() {
-  const classes = useApi<ClassRead[]>(
-    () => api.get('/dos/classes'),
-    'dos-classes',
+  const classes = useApi<ClassStats[]>(
+    () => api.get('/dos/classes/overview'),
+    'dos-classes-overview',
   )
 
   const [className, setClassName] = useState('')
@@ -29,9 +29,21 @@ export function DOSClasses() {
   const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+<<<<<<< HEAD
   const [editing, setEditing] = useState<ClassRead | null>(null)
   const [editName, setEditName] = useState('')
   const [editYear, setEditYear] = useState('')
+=======
+  const [editing, setEditing] = useState<ClassStats | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editYear, setEditYear] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editBusy, setEditBusy] = useState(false)
+
+  const [deleting, setDeleting] = useState<ClassStats | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+>>>>>>> bcefb46 (new_upd)
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -45,7 +57,7 @@ export function DOSClasses() {
       })
       setClassName('')
       setAcademicYear('')
-      setSuccess('Class created.')
+      setSuccess('Class created. It is now available to students and teachers.')
       classes.reload()
     } catch (cause) {
       setError(errorMessage(cause))
@@ -54,18 +66,31 @@ export function DOSClasses() {
     }
   }
 
+<<<<<<< HEAD
   function openEdit(item: ClassRead) {
     setEditing(item)
     setEditName(item.class_name)
     setEditYear(item.academic_year)
     setError(null)
+=======
+  function openEdit(item: ClassStats) {
+    setEditing(item)
+    setEditName(item.class_name)
+    setEditYear(item.academic_year)
+    setEditError(null)
+>>>>>>> bcefb46 (new_upd)
   }
 
   async function onEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing) return
+<<<<<<< HEAD
     setError(null)
     setBusy(true)
+=======
+    setEditError(null)
+    setEditBusy(true)
+>>>>>>> bcefb46 (new_upd)
     try {
       await api.patch<ClassRead>(`/dos/classes/${editing.id}`, {
         class_name: editName.trim(),
@@ -75,6 +100,7 @@ export function DOSClasses() {
       setSuccess('Class updated.')
       classes.reload()
     } catch (cause) {
+<<<<<<< HEAD
       setError(errorMessage(cause))
     } finally {
       setBusy(false)
@@ -97,6 +123,27 @@ export function DOSClasses() {
       classes.reload()
     } catch (cause) {
       setError(errorMessage(cause))
+=======
+      setEditError(errorMessage(cause))
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
+  async function onDelete() {
+    if (!deleting) return
+    setDeleteError(null)
+    setDeleteBusy(true)
+    try {
+      await api.delete(`/dos/classes/${deleting.id}`)
+      setDeleting(null)
+      setSuccess('Class deleted.')
+      classes.reload()
+    } catch (cause) {
+      setDeleteError(errorMessage(cause))
+    } finally {
+      setDeleteBusy(false)
+>>>>>>> bcefb46 (new_upd)
     }
   }
 
@@ -105,13 +152,19 @@ export function DOSClasses() {
       <PageHeader
         eyebrow="Setup"
         title="Classes"
-        subtitle="A class belongs to one academic year. The same name can repeat in a new year."
+        subtitle="Only the DOS creates classes. Each class is tied to students, teacher modules, and assignments."
       />
+
+      {success ? <Alert tone="success">{success}</Alert> : null}
 
       <div className="content-grid">
         <Card title="Create a class">
+<<<<<<< HEAD
           {error && !editing ? <Alert>{error}</Alert> : null}
           {success ? <Alert tone="success">{success}</Alert> : null}
+=======
+          {error ? <Alert>{error}</Alert> : null}
+>>>>>>> bcefb46 (new_upd)
           <form className="form-stack" onSubmit={onSubmit}>
             <Field label="Class name">
               <Input
@@ -155,7 +208,14 @@ export function DOSClasses() {
                   <tr>
                     <th>Class</th>
                     <th>Academic year</th>
+<<<<<<< HEAD
                     <th>ID</th>
+=======
+                    <th>Students</th>
+                    <th>Teachers</th>
+                    <th>Modules</th>
+                    <th>Assignments</th>
+>>>>>>> bcefb46 (new_upd)
                     <th className="align-right">Actions</th>
                   </tr>
                 </thead>
@@ -168,7 +228,14 @@ export function DOSClasses() {
                       <td>
                         <Badge tone="info">{item.academic_year}</Badge>
                       </td>
+<<<<<<< HEAD
                       <td className="muted">{item.id}</td>
+=======
+                      <td>{item.students}</td>
+                      <td>{item.teachers}</td>
+                      <td>{item.modules}</td>
+                      <td>{item.assignments}</td>
+>>>>>>> bcefb46 (new_upd)
                       <td className="align-right">
                         <div className="row-actions">
                           <Button
@@ -181,7 +248,14 @@ export function DOSClasses() {
                           <Button
                             size="sm"
                             variant="danger"
+<<<<<<< HEAD
                             onClick={() => onDelete(item)}
+=======
+                            onClick={() => {
+                              setDeleting(item)
+                              setDeleteError(null)
+                            }}
+>>>>>>> bcefb46 (new_upd)
                           >
                             Delete
                           </Button>
@@ -198,6 +272,7 @@ export function DOSClasses() {
 
       <Modal
         open={editing !== null}
+<<<<<<< HEAD
         title="Edit class"
         onClose={() => {
           setEditing(null)
@@ -212,12 +287,24 @@ export function DOSClasses() {
                 setError(null)
               }}
             >
+=======
+        title={editing ? `Edit ${editing.class_name}` : 'Edit class'}
+        subtitle="Renaming a class keeps its students, teachers, and assignments connected."
+        onClose={() => setEditing(null)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+>>>>>>> bcefb46 (new_upd)
               Cancel
             </Button>
             <Button
               type="submit"
               form="edit-class-form"
+<<<<<<< HEAD
               busy={busy}
+=======
+              busy={editBusy}
+>>>>>>> bcefb46 (new_upd)
               disabled={!editName.trim() || !editYear.trim()}
             >
               Save changes
@@ -226,7 +313,11 @@ export function DOSClasses() {
         }
       >
         <form id="edit-class-form" className="form-stack" onSubmit={onEdit}>
+<<<<<<< HEAD
           {error ? <Alert>{error}</Alert> : null}
+=======
+          {editError ? <Alert>{editError}</Alert> : null}
+>>>>>>> bcefb46 (new_upd)
           <Field label="Class name">
             <Input
               value={editName}
@@ -243,6 +334,32 @@ export function DOSClasses() {
           </Field>
         </form>
       </Modal>
+<<<<<<< HEAD
+=======
+
+      <Modal
+        open={deleting !== null}
+        title={deleting ? `Delete ${deleting.class_name}?` : 'Delete class'}
+        subtitle="This cannot be undone."
+        onClose={() => setDeleting(null)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" busy={deleteBusy} onClick={onDelete}>
+              Delete class
+            </Button>
+          </>
+        }
+      >
+        {deleteError ? <Alert>{deleteError}</Alert> : null}
+        <p>
+          Students in this class become unassigned. Teacher module links and
+          assignments for this class are removed.
+        </p>
+      </Modal>
+>>>>>>> bcefb46 (new_upd)
     </div>
   )
 }

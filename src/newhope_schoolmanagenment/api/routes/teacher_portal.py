@@ -11,14 +11,24 @@ from newhope_schoolmanagenment.controllers import teacher as teacher_controller
 from newhope_schoolmanagenment.schemas import (
     SubmissionGradeUpdate,
     TeacherAssignmentCreate,
+<<<<<<< HEAD
     TeacherAssignmentUpdate,
     TeacherModuleRead,
+=======
+    TeacherModuleDetail,
+>>>>>>> bcefb46 (new_upd)
     TeacherRead,
 )
 from newhope_schoolmanagenment.schemas.assignment import (
     AssignmentRead as AssignmentRecord,
 )
+<<<<<<< HEAD
 from newhope_schoolmanagenment.schemas.assignments import AssignmentRead
+=======
+from newhope_schoolmanagenment.schemas.assignments import (
+    AssignmentRead as AssignmentDetail,
+)
+>>>>>>> bcefb46 (new_upd)
 from newhope_schoolmanagenment.schemas.classes import ClassRead
 from newhope_schoolmanagenment.schemas.modules import ModuleRead
 from newhope_schoolmanagenment.schemas.submissions import SubmissionWithStudent
@@ -40,7 +50,7 @@ async def read_teacher_dashboard(
     )
 
 
-@router.get("/assignments", response_model=list[AssignmentRead])
+@router.get("/assignments", response_model=list[AssignmentDetail])
 async def list_teacher_assignments(
     current_teacher: CurrentTeacher, session: SessionDep
 ):
@@ -64,6 +74,7 @@ async def create_teacher_assignment(
     )
 
 
+<<<<<<< HEAD
 @router.patch(
     "/assignments/{assignment_id}",
     response_model=AssignmentRecord,
@@ -98,6 +109,13 @@ async def list_teacher_teaching_links(
     current_teacher: CurrentTeacher, session: SessionDep
 ):
     return await teacher_controller.list_teacher_teaching_links(
+=======
+@router.get("/assignment-options", response_model=list[TeacherModuleDetail])
+async def list_teacher_assignment_options(
+    current_teacher: CurrentTeacher, session: SessionDep
+):
+    return await teacher_controller.list_teacher_module_links(
+>>>>>>> bcefb46 (new_upd)
         session, current_teacher.id
     )
 

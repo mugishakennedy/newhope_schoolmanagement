@@ -245,6 +245,21 @@ async def list_teacher_modules(
     return list(result.scalars().all())
 
 
+async def list_teacher_module_links(
+    session: AsyncSession, teacher_id: int
+) -> list[TeacherModule]:
+    result = await session.execute(
+        select(TeacherModule)
+        .where(TeacherModule.teacher_id == teacher_id)
+        .options(
+            selectinload(TeacherModule.module),
+            selectinload(TeacherModule.school_class),
+        )
+        .order_by(TeacherModule.class_id, TeacherModule.module_id)
+    )
+    return list(result.scalars().all())
+
+
 def _teacher_submission_query(teacher_id: int):
     return (
         select(Submission)

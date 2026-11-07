@@ -1,19 +1,12 @@
 from newhope_schoolmanagenment.schemas.assignment import (
     AssignmentCreate,
     AssignmentRead,
-    AssignmentUpdate,
-    TeacherAssignmentCreate,
-    TeacherAssignmentUpdate,
 )
 from newhope_schoolmanagenment.schemas.auth import (
     MessageResponse,
     TokenResponse,
 )
-from newhope_schoolmanagenment.schemas.class_ import (
-    ClassCreate,
-    ClassRead,
-    ClassUpdate,
-)
+from newhope_schoolmanagenment.schemas.class_ import ClassCreate, ClassRead
 from newhope_schoolmanagenment.schemas.dos import (
     DOSAccountCreate,
     DOSCreate,
@@ -43,6 +36,7 @@ from newhope_schoolmanagenment.schemas.teacher import (
 )
 from newhope_schoolmanagenment.schemas.teacher_module import (
     TeacherModuleAssign,
+    TeacherModuleDetail,
     TeacherModuleRead,
 )
 
@@ -52,7 +46,6 @@ __all__ = [
     "AssignmentUpdate",
     "ClassCreate",
     "ClassRead",
-    "ClassUpdate",
     "DOSAccountCreate",
     "DOSCreate",
     "DOSRead",
@@ -68,10 +61,9 @@ __all__ = [
     "SubmissionCreate",
     "SubmissionGradeUpdate",
     "SubmissionRead",
-    "TeacherAssignmentCreate",
-    "TeacherAssignmentUpdate",
     "TeacherCreate",
     "TeacherModuleAssign",
+    "TeacherModuleDetail",
     "TeacherModuleRead",
     "TeacherRead",
     "TeacherUpdate",

@@ -33,6 +33,13 @@ export interface ClassRead {
   academic_year: string
 }
 
+export interface ClassStats extends ClassRead {
+  students: number
+  teachers: number
+  modules: number
+  assignments: number
+}
+
 export interface ModuleRead {
   id: number
   module_code: string
@@ -130,6 +137,20 @@ export interface TeacherModuleRead {
   teacher_id: number
   module_id: number
   class_id: number
+}
+
+export interface TeacherModuleOption {
+  id: number
+  module: ModuleRead
+  school_class: ClassRead
+}
+
+export interface TeacherAssignmentCreate {
+  class_id: number
+  module_id: number
+  title: string
+  description?: string | null
+  deadline?: string | null
 }
 
 export interface DOSDashboard {

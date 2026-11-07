@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
@@ -6,9 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from newhope_schoolmanagenment.models import Assignment, TeacherModule
 from newhope_schoolmanagenment.schemas import (
     AssignmentCreate,
+<<<<<<< HEAD
     AssignmentUpdate,
     TeacherAssignmentCreate,
     TeacherAssignmentUpdate,
+=======
+    TeacherAssignmentCreate,
+>>>>>>> bcefb46 (new_upd)
 )
 
 
@@ -28,6 +34,7 @@ async def _ensure_teacher_link(
             detail="Teacher is not assigned to this module and class",
         )
 
+<<<<<<< HEAD
 
 async def create_assignment(
     session: AsyncSession, data: AssignmentCreate
@@ -37,12 +44,63 @@ async def create_assignment(
     )
 
     assignment = Assignment(
+=======
+    return await _persist_assignment(
+        session,
+>>>>>>> bcefb46 (new_upd)
         teacher_id=data.teacher_id,
         module_id=data.module_id,
         class_id=data.class_id,
         title=data.title,
         description=data.description,
         deadline=data.deadline,
+    )
+
+
+async def create_teacher_assignment(
+    session: AsyncSession, teacher_id: int, data: TeacherAssignmentCreate
+) -> Assignment:
+    allowed = await session.scalar(
+        select(TeacherModule.id).where(
+            TeacherModule.teacher_id == teacher_id,
+            TeacherModule.module_id == data.module_id,
+            TeacherModule.class_id == data.class_id,
+        )
+    )
+    if allowed is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You are not assigned to this course and module",
+        )
+
+    return await _persist_assignment(
+        session,
+        teacher_id=teacher_id,
+        module_id=data.module_id,
+        class_id=data.class_id,
+        title=data.title,
+        description=data.description,
+        deadline=data.deadline,
+    )
+
+
+async def _persist_assignment(
+    session: AsyncSession,
+    *,
+    teacher_id: int,
+    module_id: int,
+    class_id: int,
+    title: str,
+    description: str | None,
+    deadline: datetime | None,
+) -> Assignment:
+    assignment = Assignment(
+        teacher_id=teacher_id,
+        module_id=module_id,
+        class_id=class_id,
+        title=title,
+        description=description,
+        deadline=deadline,
     )
     session.add(assignment)
     try:

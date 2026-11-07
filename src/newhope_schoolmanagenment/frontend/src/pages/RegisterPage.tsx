@@ -140,11 +140,11 @@ export function RegisterPage({
             </div>
 
             <Field
-              label="Class"
+              label="Course"
               hint={
                 classes.error
-                  ? 'Classes could not be loaded. You can be assigned later.'
-                  : 'Select the class you were placed in.'
+                  ? 'Courses could not be loaded. You can be assigned later.'
+                  : 'Courses are created by the DOS. Select the course you were placed in.'
               }
             >
               <Select
@@ -160,7 +160,7 @@ export function RegisterPage({
                 ))}
               </Select>
             </Field>
-            {classes.loading ? <Spinner label="Loading classes" /> : null}
+            {classes.loading ? <Spinner label="Loading courses" /> : null}
 
             <div className="form-grid">
               <Field label="Password" hint="At least 8 characters.">
