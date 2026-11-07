@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     db_user: str = "postgres"
-    db_password: str = ""
+    db_password: str = "mugisha2007@"
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "newhope"
