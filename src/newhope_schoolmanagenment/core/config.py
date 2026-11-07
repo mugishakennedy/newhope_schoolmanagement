@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     register_rate_limit: int = 3
     rate_limit_window_seconds: int = 60
 
+    upload_dir: str = "uploads"
+    max_upload_mb: int = 25
+    allowed_upload_extensions: str = ""
+
     @property
     def database_url(self) -> str:
         return (

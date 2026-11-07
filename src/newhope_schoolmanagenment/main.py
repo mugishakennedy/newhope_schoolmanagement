@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from newhope_schoolmanagenment.api.routes import (
     assignments,
@@ -38,6 +40,14 @@ async def lifespan(app: FastAPI):
 settings = get_settings()
 
 app = FastAPI(title="Newhope School Management", lifespan=lifespan)
+
+upload_directory = Path(settings.upload_dir)
+upload_directory.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(upload_directory)),
+    name="uploads",
+)
 
 if settings.enforce_https:
     app.add_middleware(HTTPSRedirectMiddleware)
