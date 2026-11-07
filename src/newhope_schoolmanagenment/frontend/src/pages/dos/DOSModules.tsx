@@ -11,6 +11,7 @@ import {
   EmptyState,
   Field,
   Input,
+  Modal,
   PageHeader,
   Spinner,
   Textarea,
@@ -29,6 +30,11 @@ export function DOSModules() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const [editing, setEditing] = useState<ModuleRead | null>(null)
+  const [editCode, setEditCode] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -53,6 +59,54 @@ export function DOSModules() {
     }
   }
 
+  function openEdit(module: ModuleRead) {
+    setEditing(module)
+    setEditCode(module.module_code)
+    setEditName(module.module_name)
+    setEditDescription(module.description ?? '')
+    setError(null)
+  }
+
+  async function onEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!editing) return
+    setError(null)
+    setBusy(true)
+    try {
+      await api.patch<ModuleRead>(`/dos/modules/${editing.id}`, {
+        module_code: editCode.trim(),
+        module_name: editName.trim(),
+        description: editDescription.trim() || null,
+      })
+      setEditing(null)
+      setSuccess('Module updated.')
+      modules.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDelete(module: ModuleRead) {
+    if (
+      !window.confirm(
+        `Delete ${module.module_name}? Its assignments and teacher links will be removed.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.delete(`/dos/modules/${module.id}`)
+      setSuccess('Module deleted.')
+      modules.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -63,7 +117,7 @@ export function DOSModules() {
 
       <div className="content-grid">
         <Card title="Create a module">
-          {error ? <Alert>{error}</Alert> : null}
+          {error && !editing ? <Alert>{error}</Alert> : null}
           {success ? <Alert tone="success">{success}</Alert> : null}
           <form className="form-stack" onSubmit={onSubmit}>
             <Field label="Module code">
@@ -117,6 +171,7 @@ export function DOSModules() {
                     <th>Module</th>
                     <th>Code</th>
                     <th>Description</th>
+                    <th className="align-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,6 +186,24 @@ export function DOSModules() {
                       <td className="muted">
                         {module.description || 'No description'}
                       </td>
+                      <td className="align-right">
+                        <div className="row-actions">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEdit(module)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onDelete(module)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -139,6 +212,61 @@ export function DOSModules() {
           )}
         </Card>
       </div>
+
+      <Modal
+        open={editing !== null}
+        title="Edit module"
+        onClose={() => {
+          setEditing(null)
+          setError(null)
+        }}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditing(null)
+                setError(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-module-form"
+              busy={busy}
+              disabled={!editCode.trim() || !editName.trim()}
+            >
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <form id="edit-module-form" className="form-stack" onSubmit={onEdit}>
+          {error ? <Alert>{error}</Alert> : null}
+          <Field label="Module code">
+            <Input
+              value={editCode}
+              onChange={(event) => setEditCode(event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Module name">
+            <Input
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Description" hint="Optional.">
+            <Textarea
+              value={editDescription}
+              onChange={(event) => setEditDescription(event.target.value)}
+              rows={3}
+            />
+          </Field>
+        </form>
+      </Modal>
     </div>
   )
 }

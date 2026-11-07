@@ -23,7 +23,7 @@ import {
   Textarea,
 } from '../../components/ui'
 import { useApi } from '../../hooks/useApi'
-import { formatDate, isPast } from '../../utils/format'
+import { formatDate, isPast, toDateTimeLocal } from '../../utils/format'
 
 interface AssignmentData {
   assignments: AssignmentRecord[]
@@ -52,6 +52,14 @@ export function DOSAssignments() {
   const [deadline, setDeadline] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const [editing, setEditing] = useState<AssignmentRecord | null>(null)
+  const [editTeacherId, setEditTeacherId] = useState('')
+  const [editClassId, setEditClassId] = useState('')
+  const [editModuleId, setEditModuleId] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editDeadline, setEditDeadline] = useState('')
 
   const classById = useMemo(() => {
     const map = new Map<number, ClassRead>()
@@ -104,6 +112,62 @@ export function DOSAssignments() {
     }
   }
 
+  function openEdit(assignment: AssignmentRecord) {
+    setEditing(assignment)
+    setEditTeacherId(String(assignment.teacher_id))
+    setEditClassId(String(assignment.class_id))
+    setEditModuleId(String(assignment.module_id))
+    setEditTitle(assignment.title)
+    setEditDescription(assignment.description ?? '')
+    setEditDeadline(toDateTimeLocal(assignment.deadline))
+    setError(null)
+  }
+
+  async function onEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!editing) return
+    setError(null)
+    setBusy(true)
+    try {
+      await api.patch<AssignmentRecord>(
+        `/dos/assignments/${editing.id}`,
+        {
+          teacher_id: Number(editTeacherId),
+          class_id: Number(editClassId),
+          module_id: Number(editModuleId),
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          deadline: editDeadline
+            ? new Date(editDeadline).toISOString()
+            : null,
+        },
+      )
+      setEditing(null)
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDelete(assignment: AssignmentRecord) {
+    if (
+      !window.confirm(
+        `Delete "${assignment.title}"? All submissions for it will be removed.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    try {
+      await api.delete(`/dos/assignments/${assignment.id}`)
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   if (data.loading) return <Spinner label="Loading assignments" />
   if (data.error) return <Alert>{data.error}</Alert>
 
@@ -137,6 +201,7 @@ export function DOSAssignments() {
                   <th>Module</th>
                   <th>Class</th>
                   <th>Deadline</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,6 +233,24 @@ export function DOSAssignments() {
                         >
                           {formatDate(assignment.deadline)}
                         </Badge>
+                      </td>
+                      <td className="align-right">
+                        <div className="row-actions">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEdit(assignment)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onDelete(assignment)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -279,6 +362,115 @@ export function DOSAssignments() {
               type="datetime-local"
               value={deadline}
               onChange={(event) => setDeadline(event.target.value)}
+            />
+          </Field>
+        </form>
+      </Modal>
+
+      <Modal
+        open={editing !== null}
+        title="Edit assignment"
+        subtitle="Changes apply immediately for students in the class."
+        onClose={() => {
+          setEditing(null)
+          setError(null)
+        }}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditing(null)
+                setError(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-assignment-form"
+              busy={busy}
+              disabled={
+                !editTeacherId ||
+                !editClassId ||
+                !editModuleId ||
+                !editTitle.trim()
+              }
+            >
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="edit-assignment-form"
+          className="form-stack"
+          onSubmit={onEdit}
+        >
+          {error ? <Alert>{error}</Alert> : null}
+          <Field label="Teacher">
+            <Select
+              value={editTeacherId}
+              onChange={(event) => setEditTeacherId(event.target.value)}
+              required
+            >
+              <option value="">Select a teacher</option>
+              {(data.data?.teachers ?? []).map((teacher) => (
+                <option key={teacher.id} value={teacher.id}>
+                  {teacher.full_name} · {teacher.employee_code}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <div className="form-grid">
+            <Field label="Module">
+              <Select
+                value={editModuleId}
+                onChange={(event) => setEditModuleId(event.target.value)}
+                required
+              >
+                <option value="">Select a module</option>
+                {(data.data?.modules ?? []).map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {module.module_code} · {module.module_name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Class">
+              <Select
+                value={editClassId}
+                onChange={(event) => setEditClassId(event.target.value)}
+                required
+              >
+                <option value="">Select a class</option>
+                {(data.data?.classes ?? []).map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.class_name} · {item.academic_year}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label="Title">
+            <Input
+              value={editTitle}
+              onChange={(event) => setEditTitle(event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Description" hint="Optional instructions for students.">
+            <Textarea
+              value={editDescription}
+              onChange={(event) => setEditDescription(event.target.value)}
+              rows={3}
+            />
+          </Field>
+          <Field label="Deadline" hint="Optional. Submissions close after this time.">
+            <Input
+              type="datetime-local"
+              value={editDeadline}
+              onChange={(event) => setEditDeadline(event.target.value)}
             />
           </Field>
         </form>

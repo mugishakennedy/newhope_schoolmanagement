@@ -1702,6 +1702,20 @@ a {
   line-height: 1.4;
 }
 
+.row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.file-input {
+  display: block;
+  width: 100%;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
 /* ---------- Empty / modal ---------- */
 
 .empty-state {

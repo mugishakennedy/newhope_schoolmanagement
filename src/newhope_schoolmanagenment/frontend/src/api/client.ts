@@ -148,6 +148,12 @@ export const api = {
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   },
+  upload<T>(path: string, formData: FormData): Promise<T> {
+    return request<T>(path, {
+      method: 'POST',
+      body: formData,
+    })
+  },
   patch<T>(path: string, body?: unknown): Promise<T> {
     return request<T>(path, {
       method: 'PATCH',
@@ -163,4 +169,10 @@ export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message
   if (error instanceof Error) return error.message
   return 'Something went wrong. Please try again.'
+}
+
+export function mediaUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path
+  if (path.startsWith('/')) return `${BASE_URL}${path}`
+  return path
 }

@@ -42,11 +42,17 @@ export function DOSTeachers() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [assignTarget, setAssignTarget] = useState<TeacherRead | null>(null)
+  const [editTarget, setEditTarget] = useState<TeacherRead | null>(null)
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [employeeCode, setEmployeeCode] = useState('')
   const [password, setPassword] = useState('')
+
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editCode, setEditCode] = useState('')
+  const [editPassword, setEditPassword] = useState('')
 
   const [moduleId, setModuleId] = useState('')
   const [classId, setClassId] = useState('')
@@ -109,6 +115,60 @@ export function DOSTeachers() {
     }
   }
 
+  function openEdit(teacher: TeacherRead) {
+    setEditTarget(teacher)
+    setEditName(teacher.full_name)
+    setEditEmail(teacher.email)
+    setEditCode(teacher.employee_code)
+    setEditPassword('')
+    setError(null)
+  }
+
+  async function onEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!editTarget) return
+    setError(null)
+    setBusy(true)
+    try {
+      const payload: Record<string, string> = {
+        full_name: editName.trim(),
+        email: editEmail.trim(),
+        employee_code: editCode.trim(),
+      }
+      if (editPassword) payload.password = editPassword
+      await api.patch<TeacherRead>(
+        `/dos/teachers/${editTarget.id}`,
+        payload,
+      )
+      setEditTarget(null)
+      setNotice('Teacher updated.')
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDelete(teacher: TeacherRead) {
+    if (
+      !window.confirm(
+        `Delete ${teacher.full_name}? Their assignments and teacher links will be removed.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setNotice(null)
+    try {
+      await api.delete(`/dos/teachers/${teacher.id}`)
+      setNotice('Teacher deleted.')
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   if (data.loading) return <Spinner label="Loading teachers" />
   if (data.error) return <Alert>{data.error}</Alert>
 
@@ -124,7 +184,9 @@ export function DOSTeachers() {
       />
 
       {notice ? <Alert tone="success">{notice}</Alert> : null}
-      {error && !createOpen && !assignTarget ? <Alert>{error}</Alert> : null}
+      {error && !createOpen && !assignTarget && !editTarget ? (
+        <Alert>{error}</Alert>
+      ) : null}
 
       <Card>
         {teachers.length === 0 ? (
@@ -159,18 +221,34 @@ export function DOSTeachers() {
                     <td>{teacher.email}</td>
                     <td className="muted">{formatDate(teacher.created_at)}</td>
                     <td className="align-right">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setAssignTarget(teacher)
-                          setModuleId('')
-                          setClassId('')
-                          setError(null)
-                        }}
-                      >
-                        Assign module
-                      </Button>
+                      <div className="row-actions">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setAssignTarget(teacher)
+                            setModuleId('')
+                            setClassId('')
+                            setError(null)
+                          }}
+                        >
+                          Assign module
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => openEdit(teacher)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => onDelete(teacher)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -307,6 +385,75 @@ export function DOSTeachers() {
                 </option>
               ))}
             </Select>
+          </Field>
+        </form>
+      </Modal>
+
+      <Modal
+        open={editTarget !== null}
+        title="Edit teacher"
+        subtitle="Leave the password field empty to keep the current password."
+        onClose={() => {
+          setEditTarget(null)
+          setError(null)
+        }}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditTarget(null)
+                setError(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-teacher-form"
+              busy={busy}
+              disabled={!editName.trim() || !editEmail.trim() || !editCode.trim()}
+            >
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <form id="edit-teacher-form" className="form-stack" onSubmit={onEdit}>
+          {error ? <Alert>{error}</Alert> : null}
+          <Field label="Full name">
+            <Input
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              required
+            />
+          </Field>
+          <div className="form-grid">
+            <Field label="Email">
+              <Input
+                type="email"
+                value={editEmail}
+                onChange={(event) => setEditEmail(event.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Employee code">
+              <Input
+                value={editCode}
+                onChange={(event) => setEditCode(event.target.value)}
+                required
+              />
+            </Field>
+          </div>
+          <Field label="New password" hint="Optional. At least 8 characters.">
+            <Input
+              type="password"
+              value={editPassword}
+              onChange={(event) => setEditPassword(event.target.value)}
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Leave empty to keep current"
+            />
           </Field>
         </form>
       </Modal>

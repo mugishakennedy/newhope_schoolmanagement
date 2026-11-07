@@ -51,6 +51,7 @@ export function StudentAssignments() {
   const [moduleFilter, setModuleFilter] = useState('all')
   const [active, setActive] = useState<AssignmentDetail | null>(null)
   const [contentUrl, setContentUrl] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -76,6 +77,7 @@ export function StudentAssignments() {
     const existing = submissionByAssignment.get(assignment.id)
     setActive(assignment)
     setContentUrl(existing?.content_url ?? '')
+    setFile(null)
     setError(null)
   }
 
@@ -85,12 +87,22 @@ export function StudentAssignments() {
     setBusy(true)
     setError(null)
     try {
-      await api.post<SubmissionRead>(
-        `/students/me/assignments/${active.id}/submissions`,
-        { content_url: contentUrl.trim() },
-      )
+      if (file) {
+        const body = new FormData()
+        body.append('file', file)
+        await api.upload<SubmissionRead>(
+          `/students/me/assignments/${active.id}/submissions/upload`,
+          body,
+        )
+      } else {
+        await api.post<SubmissionRead>(
+          `/students/me/assignments/${active.id}/submissions`,
+          { content_url: contentUrl.trim() },
+        )
+      }
       setActive(null)
       setContentUrl('')
+      setFile(null)
       portal.reload()
     } catch (cause) {
       setError(errorMessage(cause))
@@ -225,6 +237,7 @@ export function StudentAssignments() {
         }
         onClose={() => {
           setActive(null)
+          setFile(null)
           setError(null)
         }}
         footer={
@@ -233,6 +246,7 @@ export function StudentAssignments() {
               variant="ghost"
               onClick={() => {
                 setActive(null)
+                setFile(null)
                 setError(null)
               }}
             >
@@ -242,7 +256,7 @@ export function StudentAssignments() {
               type="submit"
               form="submit-assignment-form"
               busy={busy}
-              disabled={!contentUrl.trim()}
+              disabled={!file && !contentUrl.trim()}
             >
               Submit work
             </Button>
@@ -256,17 +270,34 @@ export function StudentAssignments() {
         >
           {error ? <Alert>{error}</Alert> : null}
           <Field
-            label="Work link"
-            hint="Paste a link to your document, repository, or uploaded file."
+            label="Upload a file"
+            hint="Choose a file from your device. Maximum size is 25 MB."
+          >
+            <input
+              className="file-input"
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.xls,.xlsx,.csv,.zip,.png,.jpg,.jpeg,.gif,.webp"
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            />
+          </Field>
+          <Field
+            label="Or link to your work"
+            hint="Paste a link to a document or repository instead of uploading."
           >
             <Textarea
               value={contentUrl}
               onChange={(event) => setContentUrl(event.target.value)}
               placeholder="https://..."
               rows={3}
-              required
+              disabled={file !== null}
             />
           </Field>
+          {file ? (
+            <div className="read-panel">
+              <span className="eyebrow">Selected file</span>
+              <p>{file.name}</p>
+            </div>
+          ) : null}
           {active?.description ? (
             <div className="read-panel">
               <span className="eyebrow">Instructions</span>
