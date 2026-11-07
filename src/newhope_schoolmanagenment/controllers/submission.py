@@ -1,7 +1,8 @@
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from newhope_schoolmanagenment.core.storage import delete_uploaded_file
 from newhope_schoolmanagenment.models import Submission
 from newhope_schoolmanagenment.schemas import SubmissionGradeUpdate
 
@@ -40,3 +41,15 @@ async def grade_submission(
     await session.commit()
     await session.refresh(submission)
     return submission
+
+
+async def delete_submission(
+    session: AsyncSession, submission_id: int
+) -> None:
+    submission = await get_submission(session, submission_id)
+    content_url = submission.content_url
+    await session.execute(
+        delete(Submission).where(Submission.id == submission_id)
+    )
+    await session.commit()
+    delete_uploaded_file(content_url)

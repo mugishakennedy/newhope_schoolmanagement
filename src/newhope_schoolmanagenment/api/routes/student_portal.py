@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from newhope_schoolmanagenment.api.deps import CurrentStudent, SessionDep
 from newhope_schoolmanagenment.controllers import student_portal as portal
@@ -8,7 +8,6 @@ from newhope_schoolmanagenment.models import (
     Assignment,
     Class,
     Module,
-    Student,
     Submission,
     Teacher,
 )
@@ -88,6 +87,22 @@ async def submit_assignment(
     )
 
 
+@router.post(
+    "/assignments/{assignment_id}/submissions/upload",
+    response_model=SubmissionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_assignment_submission(
+    assignment_id: int,
+    current_student: CurrentStudent,
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+) -> Submission:
+    return await portal.submit_assignment_file(
+        session, current_student, assignment_id, file
+    )
+
+
 @router.get(
     "/submissions",
     response_model=list[SubmissionWithAssignment],
@@ -124,4 +139,18 @@ async def update_student_submission(
 ) -> Submission:
     return await portal.update_student_submission(
         session, current_student, submission_id, data
+    )
+
+
+@router.delete(
+    "/submissions/{submission_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_student_submission(
+    submission_id: int,
+    current_student: CurrentStudent,
+    session: SessionDep,
+) -> None:
+    await portal.delete_student_submission(
+        session, current_student, submission_id
     )

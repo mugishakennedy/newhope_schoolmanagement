@@ -7,6 +7,7 @@ from newhope_schoolmanagenment.controllers import (
 from newhope_schoolmanagenment.schemas import (
     AssignmentCreate,
     AssignmentRead,
+    AssignmentUpdate,
 )
 
 router = APIRouter(prefix="/dos/assignments", tags=["dos-assignments"])
@@ -48,3 +49,22 @@ async def get_assignment(
     return await assignment_controller.get_assignment(
         session, assignment_id
     )
+
+
+@router.patch("/{assignment_id}", response_model=AssignmentRead)
+async def update_assignment(
+    assignment_id: int,
+    data: AssignmentUpdate,
+    current_dos: CurrentDOS,
+    session: SessionDep,
+) -> AssignmentRead:
+    return await assignment_controller.update_assignment(
+        session, assignment_id, data
+    )
+
+
+@router.delete("/{assignment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_assignment(
+    assignment_id: int, current_dos: CurrentDOS, session: SessionDep
+) -> None:
+    await assignment_controller.delete_assignment(session, assignment_id)

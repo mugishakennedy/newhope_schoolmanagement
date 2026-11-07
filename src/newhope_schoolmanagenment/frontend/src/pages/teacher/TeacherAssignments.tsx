@@ -1,50 +1,88 @@
 import { useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 
-import { api } from '../../api/client'
+import { api, errorMessage } from '../../api/client'
 import type {
   AssignmentDetail,
+  ClassRead,
+  ModuleRead,
   SubmissionWithStudent,
+  TeacherModuleRead,
 } from '../../api/types'
 import {
   Alert,
   Badge,
+  Button,
   Card,
   EmptyState,
+  Field,
+  Input,
+  Modal,
   PageHeader,
   Select,
   Spinner,
+  Textarea,
 } from '../../components/ui'
 import { useApi } from '../../hooks/useApi'
-import { formatDate, isPast } from '../../utils/format'
+import { formatDate, isPast, toDateTimeLocal } from '../../utils/format'
 
 interface AssignmentData {
   assignments: AssignmentDetail[]
   submissions: SubmissionWithStudent[]
+  links: TeacherModuleRead[]
+  classes: ClassRead[]
+  modules: ModuleRead[]
 }
 
 export function TeacherAssignments() {
   const data = useApi<AssignmentData>(async () => {
-    const [assignments, submissions] = await Promise.all([
-      api.get<AssignmentDetail[]>('/teacher/assignments'),
-      api.get<SubmissionWithStudent[]>('/teacher/submissions').catch(() => []),
-    ])
-    return { assignments, submissions }
+    const [assignments, submissions, links, classes, modules] =
+      await Promise.all([
+        api.get<AssignmentDetail[]>('/teacher/assignments'),
+        api.get<SubmissionWithStudent[]>('/teacher/submissions').catch(() => []),
+        api.get<TeacherModuleRead[]>('/teacher/teaching-links').catch(() => []),
+        api.get<ClassRead[]>('/teacher/classes').catch(() => []),
+        api.get<ModuleRead[]>('/teacher/modules').catch(() => []),
+      ])
+    return { assignments, submissions, links, classes, modules }
   }, 'teacher-assignments')
 
   const [classFilter, setClassFilter] = useState('all')
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState<AssignmentDetail | null>(null)
+  const [linkKey, setLinkKey] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [deadline, setDeadline] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const classById = useMemo(() => {
+    const map = new Map<number, ClassRead>()
+    for (const item of data.data?.classes ?? []) map.set(item.id, item)
+    return map
+  }, [data.data])
+
+  const moduleById = useMemo(() => {
+    const map = new Map<number, ModuleRead>()
+    for (const item of data.data?.modules ?? []) map.set(item.id, item)
+    return map
+  }, [data.data])
 
   const classes = useMemo(() => {
-    const map = new Map<number, string>()
-    for (const assignment of data.data?.assignments ?? []) {
-      map.set(assignment.school_class.id, assignment.school_class.class_name)
-    }
-    return Array.from(map.entries())
+    const ids = new Set<number>()
+    for (const link of data.data?.links ?? []) ids.add(link.class_id)
+    return Array.from(ids)
   }, [data.data])
 
   const submissionCount = useMemo(() => {
     const map = new Map<number, number>()
     for (const submission of data.data?.submissions ?? []) {
-      map.set(submission.assignment_id, (map.get(submission.assignment_id) ?? 0) + 1)
+      map.set(
+        submission.assignment_id,
+        (map.get(submission.assignment_id) ?? 0) + 1,
+      )
     }
     return map
   }, [data.data])
@@ -57,6 +95,89 @@ export function TeacherAssignments() {
     )
   }, [data.data, classFilter])
 
+  function reset() {
+    setLinkKey('')
+    setTitle('')
+    setDescription('')
+    setDeadline('')
+    setError(null)
+  }
+
+  function openCreate() {
+    reset()
+    setEditing(null)
+    setOpen(true)
+  }
+
+  function openEdit(assignment: AssignmentDetail) {
+    setEditing(assignment)
+    setLinkKey(`${assignment.module.id}:${assignment.school_class.id}`)
+    setTitle(assignment.title)
+    setDescription(assignment.description ?? '')
+    setDeadline(toDateTimeLocal(assignment.deadline))
+    setError(null)
+    setOpen(true)
+  }
+
+  function parseLink(key: string): { moduleId: number; classId: number } {
+    const [moduleId, classId] = key.split(':').map(Number)
+    return { moduleId, classId }
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const { moduleId, classId } = parseLink(linkKey)
+    if (!moduleId || !classId) {
+      setError('Choose the module and class to teach.')
+      return
+    }
+    setError(null)
+    setBusy(true)
+    try {
+      const payload = {
+        module_id: moduleId,
+        class_id: classId,
+        title: title.trim(),
+        description: description.trim() || null,
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+      }
+      if (editing) {
+        await api.patch(`/teacher/assignments/${editing.id}`, payload)
+        setNotice('Assignment updated.')
+      } else {
+        await api.post('/teacher/assignments', payload)
+        setNotice('Assignment published.')
+      }
+      setOpen(false)
+      setEditing(null)
+      reset()
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDelete(assignment: AssignmentDetail) {
+    if (
+      !window.confirm(
+        `Delete "${assignment.title}"? All submissions for it will be removed.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setNotice(null)
+    try {
+      await api.delete(`/teacher/assignments/${assignment.id}`)
+      setNotice('Assignment deleted.')
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   if (data.loading) return <Spinner label="Loading assignments" />
   if (data.error) return <Alert>{data.error}</Alert>
 
@@ -65,28 +186,35 @@ export function TeacherAssignments() {
       <PageHeader
         eyebrow="Teaching"
         title="Assignments"
-        subtitle="Every assignment the Dean of Studies has published for your classes."
+        subtitle="Publish coursework for the classes and modules you teach."
         action={
-          <Select
-            value={classFilter}
-            onChange={(event) => setClassFilter(event.target.value)}
-            aria-label="Filter by class"
-          >
-            <option value="all">All classes</option>
-            {classes.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </Select>
+          <div className="row-actions">
+            <Select
+              value={classFilter}
+              onChange={(event) => setClassFilter(event.target.value)}
+              aria-label="Filter by class"
+            >
+              <option value="all">All classes</option>
+              {classes.map((id) => (
+                <option key={id} value={id}>
+                  {classById.get(id)?.class_name ?? `Class #${id}`}
+                </option>
+              ))}
+            </Select>
+            <Button onClick={openCreate}>Create assignment</Button>
+          </div>
         }
       />
+
+      {notice ? <Alert tone="success">{notice}</Alert> : null}
+      {error && !open ? <Alert>{error}</Alert> : null}
 
       <Card>
         {assignments.length === 0 ? (
           <EmptyState
             title="No assignments"
-            description="The DOS has not published assignments for your classes yet."
+            description="Create an assignment for one of your classes."
+            action={<Button onClick={openCreate}>Create assignment</Button>}
           />
         ) : (
           <div className="table-wrap">
@@ -98,6 +226,7 @@ export function TeacherAssignments() {
                   <th>Class</th>
                   <th>Deadline</th>
                   <th>Submissions</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,6 +264,24 @@ export function TeacherAssignments() {
                     <td>
                       <strong>{submissionCount.get(assignment.id) ?? 0}</strong>
                     </td>
+                    <td className="align-right">
+                      <div className="row-actions">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => openEdit(assignment)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => onDelete(assignment)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -142,6 +289,97 @@ export function TeacherAssignments() {
           </div>
         )}
       </Card>
+
+      <Modal
+        open={open}
+        title={editing ? 'Edit assignment' : 'Create an assignment'}
+        subtitle="Only classes and modules assigned to you are available."
+        onClose={() => {
+          setOpen(false)
+          setEditing(null)
+          reset()
+        }}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setOpen(false)
+                setEditing(null)
+                reset()
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="teacher-assignment-form"
+              busy={busy}
+              disabled={!linkKey || !title.trim()}
+            >
+              {editing ? 'Save changes' : 'Publish assignment'}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="teacher-assignment-form"
+          className="form-stack"
+          onSubmit={onSubmit}
+        >
+          {error ? <Alert>{error}</Alert> : null}
+          <Field label="Module and class">
+            <Select
+              value={linkKey}
+              onChange={(event) => setLinkKey(event.target.value)}
+              required
+            >
+              <option value="">Select what you teach</option>
+              {(data.data?.links ?? []).map((link) => (
+                <option
+                  key={link.id}
+                  value={`${link.module_id}:${link.class_id}`}
+                >
+                  {moduleById.get(link.module_id)?.module_name ??
+                    `Module #${link.module_id}`}
+                  {' · '}
+                  {classById.get(link.class_id)?.class_name ??
+                    `Class #${link.class_id}`}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Title">
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g. Algebra practice set"
+              required
+            />
+          </Field>
+          <Field label="Description" hint="Optional instructions for students.">
+            <Textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={3}
+              placeholder="What should students do?"
+            />
+          </Field>
+          <Field label="Deadline" hint="Optional. Submissions close after this time.">
+            <Input
+              type="datetime-local"
+              value={deadline}
+              onChange={(event) => setDeadline(event.target.value)}
+            />
+          </Field>
+          {(data.data?.links ?? []).length === 0 ? (
+            <Alert tone="gold">
+              You have no modules or classes assigned yet. Ask the DOS to
+              assign you before publishing work.
+            </Alert>
+          ) : null}
+        </form>
+      </Modal>
     </div>
   )
 }

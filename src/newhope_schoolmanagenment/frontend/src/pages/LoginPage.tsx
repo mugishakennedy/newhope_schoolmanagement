@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 
 import { errorMessage } from '../api/client'
 import { useAuth } from '../auth/useAuth'
-import logoImage from '../assets/logo.png'
 import { Alert, Button, Field, Input } from '../components/ui'
 import { ThemeToggle } from '../components/ThemeToggle'
 import type { ThemeMode } from '../utils/theme'
@@ -135,7 +134,7 @@ export function LoginPage({
     <main className="login-page" lang={language}>
       <header className="login-toolbar">
         <div className="login-brand">
-          <img src={logoImage} alt="" />
+          <img src="/favicon.png" alt="" />
           <span>
             <strong>Newhope</strong>
             <small>School Management</small>

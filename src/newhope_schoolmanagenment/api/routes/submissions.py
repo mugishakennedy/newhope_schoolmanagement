@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from newhope_schoolmanagenment.api.deps import CurrentDOS, SessionDep
 from newhope_schoolmanagenment.controllers import (
@@ -42,3 +42,10 @@ async def grade_submission(
     return await submission_controller.grade_submission(
         session, submission_id, data
     )
+
+
+@router.delete("/{submission_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_submission(
+    submission_id: int, current_dos: CurrentDOS, session: SessionDep
+) -> None:
+    await submission_controller.delete_submission(session, submission_id)

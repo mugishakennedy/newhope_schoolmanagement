@@ -1,13 +1,22 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from newhope_schoolmanagenment.api.deps import (
     CurrentTeacher,
     SessionDep,
 )
+from newhope_schoolmanagenment.controllers import (
+    assignment as assignment_controller,
+)
 from newhope_schoolmanagenment.controllers import teacher as teacher_controller
 from newhope_schoolmanagenment.schemas import (
     SubmissionGradeUpdate,
+    TeacherAssignmentCreate,
+    TeacherAssignmentUpdate,
+    TeacherModuleRead,
     TeacherRead,
+)
+from newhope_schoolmanagenment.schemas.assignment import (
+    AssignmentRead as AssignmentRecord,
 )
 from newhope_schoolmanagenment.schemas.assignments import AssignmentRead
 from newhope_schoolmanagenment.schemas.classes import ClassRead
@@ -36,6 +45,59 @@ async def list_teacher_assignments(
     current_teacher: CurrentTeacher, session: SessionDep
 ):
     return await teacher_controller.list_teacher_assignments(
+        session, current_teacher.id
+    )
+
+
+@router.post(
+    "/assignments",
+    response_model=AssignmentRecord,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_teacher_assignment(
+    data: TeacherAssignmentCreate,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> AssignmentRecord:
+    return await assignment_controller.create_teacher_assignment(
+        session, current_teacher.id, data
+    )
+
+
+@router.patch(
+    "/assignments/{assignment_id}",
+    response_model=AssignmentRecord,
+)
+async def update_teacher_assignment(
+    assignment_id: int,
+    data: TeacherAssignmentUpdate,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> AssignmentRecord:
+    return await assignment_controller.update_teacher_assignment(
+        session, current_teacher.id, assignment_id, data
+    )
+
+
+@router.delete(
+    "/assignments/{assignment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_teacher_assignment(
+    assignment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> None:
+    await assignment_controller.delete_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+
+
+@router.get("/teaching-links", response_model=list[TeacherModuleRead])
+async def list_teacher_teaching_links(
+    current_teacher: CurrentTeacher, session: SessionDep
+):
+    return await teacher_controller.list_teacher_teaching_links(
         session, current_teacher.id
     )
 

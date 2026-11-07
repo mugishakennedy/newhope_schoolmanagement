@@ -11,6 +11,7 @@ import {
   EmptyState,
   Field,
   Input,
+  Modal,
   PageHeader,
   Spinner,
 } from '../../components/ui'
@@ -27,6 +28,10 @@ export function DOSClasses() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const [editing, setEditing] = useState<ClassRead | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editYear, setEditYear] = useState('')
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -49,6 +54,52 @@ export function DOSClasses() {
     }
   }
 
+  function openEdit(item: ClassRead) {
+    setEditing(item)
+    setEditName(item.class_name)
+    setEditYear(item.academic_year)
+    setError(null)
+  }
+
+  async function onEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!editing) return
+    setError(null)
+    setBusy(true)
+    try {
+      await api.patch<ClassRead>(`/dos/classes/${editing.id}`, {
+        class_name: editName.trim(),
+        academic_year: editYear.trim(),
+      })
+      setEditing(null)
+      setSuccess('Class updated.')
+      classes.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onDelete(item: ClassRead) {
+    if (
+      !window.confirm(
+        `Delete ${item.class_name} (${item.academic_year})? Its assignments and teacher links will be removed.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setSuccess(null)
+    try {
+      await api.delete(`/dos/classes/${item.id}`)
+      setSuccess('Class deleted.')
+      classes.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   return (
     <div className="page-stack">
       <PageHeader
@@ -59,7 +110,7 @@ export function DOSClasses() {
 
       <div className="content-grid">
         <Card title="Create a class">
-          {error ? <Alert>{error}</Alert> : null}
+          {error && !editing ? <Alert>{error}</Alert> : null}
           {success ? <Alert tone="success">{success}</Alert> : null}
           <form className="form-stack" onSubmit={onSubmit}>
             <Field label="Class name">
@@ -105,6 +156,7 @@ export function DOSClasses() {
                     <th>Class</th>
                     <th>Academic year</th>
                     <th>ID</th>
+                    <th className="align-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,6 +169,24 @@ export function DOSClasses() {
                         <Badge tone="info">{item.academic_year}</Badge>
                       </td>
                       <td className="muted">{item.id}</td>
+                      <td className="align-right">
+                        <div className="row-actions">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => openEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onDelete(item)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -125,6 +195,54 @@ export function DOSClasses() {
           )}
         </Card>
       </div>
+
+      <Modal
+        open={editing !== null}
+        title="Edit class"
+        onClose={() => {
+          setEditing(null)
+          setError(null)
+        }}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditing(null)
+                setError(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-class-form"
+              busy={busy}
+              disabled={!editName.trim() || !editYear.trim()}
+            >
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <form id="edit-class-form" className="form-stack" onSubmit={onEdit}>
+          {error ? <Alert>{error}</Alert> : null}
+          <Field label="Class name">
+            <Input
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Academic year">
+            <Input
+              value={editYear}
+              onChange={(event) => setEditYear(event.target.value)}
+              required
+            />
+          </Field>
+        </form>
+      </Modal>
     </div>
   )
 }

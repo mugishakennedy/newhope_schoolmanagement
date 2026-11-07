@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { api, errorMessage } from '../../api/client'
+import { api, errorMessage, mediaUrl } from '../../api/client'
 import type {
   AssignmentDetail,
   SubmissionWithStudent,
@@ -212,7 +212,7 @@ export function TeacherSubmissions() {
           {error ? <Alert>{error}</Alert> : null}
           {active ? (
             <a
-              href={active.content_url}
+              href={mediaUrl(active.content_url)}
               target="_blank"
               rel="noreferrer"
               className="text-link"

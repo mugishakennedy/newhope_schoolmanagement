@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 
 import type { SessionUser } from '../api/types'
-import heroImage from '../assets/hero.png'
 import { initials, roleLabel } from '../utils/format'
 import type { ThemeMode } from '../utils/theme'
 import { ThemeToggle } from './ThemeToggle'
@@ -45,7 +44,7 @@ export function Layout({
           onClick={() => navigate(nav[0]?.path ?? '/')}
         >
           <span className="brand-mark">
-            <img src={heroImage} alt="" />
+            <img src="/favicon.png" alt="" />
           </span>
           <span>
             <strong>Newhope</strong>

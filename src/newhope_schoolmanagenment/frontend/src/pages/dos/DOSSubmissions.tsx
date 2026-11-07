@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { api, errorMessage } from '../../api/client'
+import { api, errorMessage, mediaUrl } from '../../api/client'
 import type {
   AssignmentRecord,
   StudentRead,
@@ -102,6 +102,17 @@ export function DOSSubmissions() {
     }
   }
 
+  async function onDelete(submission: SubmissionRead) {
+    if (!window.confirm('Delete this submission permanently?')) return
+    setError(null)
+    try {
+      await api.delete(`/dos/submissions/${submission.id}`)
+      data.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
+
   if (data.loading) return <Spinner label="Loading submissions" />
   if (data.error) return <Alert>{data.error}</Alert>
 
@@ -127,6 +138,8 @@ export function DOSSubmissions() {
         }
       />
 
+      {error && !active ? <Alert>{error}</Alert> : null}
+
       <Card>
         {filtered.length === 0 ? (
           <EmptyState
@@ -142,7 +155,7 @@ export function DOSSubmissions() {
                   <th>Student</th>
                   <th>Submitted</th>
                   <th>Grade</th>
-                  <th className="align-right">Action</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,7 +168,7 @@ export function DOSSubmissions() {
                         <div className="cell-main">
                           <strong>{assignmentTitle(submission.assignment_id)}</strong>
                           <a
-                            href={submission.content_url}
+                            href={mediaUrl(submission.content_url)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-link"
@@ -183,13 +196,22 @@ export function DOSSubmissions() {
                         </Badge>
                       </td>
                       <td className="align-right">
-                        <Button
-                          size="sm"
-                          variant={hasGrade ? 'secondary' : 'primary'}
-                          onClick={() => openGrade(submission)}
-                        >
-                          {hasGrade ? 'Update grade' : 'Grade'}
-                        </Button>
+                        <div className="row-actions">
+                          <Button
+                            size="sm"
+                            variant={hasGrade ? 'secondary' : 'primary'}
+                            onClick={() => openGrade(submission)}
+                          >
+                            {hasGrade ? 'Update grade' : 'Grade'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onDelete(submission)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -234,7 +256,7 @@ export function DOSSubmissions() {
           {error ? <Alert>{error}</Alert> : null}
           {active ? (
             <a
-              href={active.content_url}
+              href={mediaUrl(active.content_url)}
               target="_blank"
               rel="noreferrer"
               className="text-link"

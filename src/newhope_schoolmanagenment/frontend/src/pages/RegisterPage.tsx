@@ -4,7 +4,6 @@ import type { FormEvent } from 'react'
 import { api, errorMessage } from '../api/client'
 import type { ClassRead } from '../api/types'
 import { useAuth } from '../auth/useAuth'
-import heroImage from '../assets/hero.png'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { Alert, Button, Field, Input, Select, Spinner } from '../components/ui'
 import { useApi } from '../hooks/useApi'
@@ -76,7 +75,7 @@ export function RegisterPage({
           </p>
 
           <div className="auth-hero-card">
-            <img src={heroImage} alt="" />
+            <img src="/favicon.png" alt="" />
             <div>
               <strong>Only students self-register.</strong>
               <p>

@@ -1,11 +1,15 @@
 from datetime import UTC, datetime
 
-from fastapi import HTTPException, status
-from sqlalchemy import select
+from fastapi import HTTPException, UploadFile, status
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from newhope_schoolmanagenment.core.storage import (
+    delete_uploaded_file,
+    save_submission_file,
+)
 from newhope_schoolmanagenment.models import (
     Assignment,
     Class,
@@ -140,15 +144,12 @@ async def get_student_assignment(
     return assignment
 
 
-async def submit_assignment(
+async def _upsert_submission(
     session: AsyncSession,
     student: Student,
-    assignment_id: int,
-    data: SubmissionCreate,
+    assignment: Assignment,
+    content_url: str,
 ) -> Submission:
-    assignment = await get_student_assignment(session, student, assignment_id)
-    _ensure_before_deadline(assignment)
-
     result = await session.execute(
         select(Submission).where(
             Submission.assignment_id == assignment.id,
@@ -156,17 +157,18 @@ async def submit_assignment(
         )
     )
     submission = result.scalar_one_or_none()
+    previous_url = submission.content_url if submission is not None else None
 
     if submission is None:
         submission = Submission(
             assignment_id=assignment.id,
             student_id=student.id,
-            content_url=data.content_url,
+            content_url=content_url,
             submitted_at=datetime.now(UTC),
         )
         session.add(submission)
     else:
-        submission.content_url = data.content_url
+        submission.content_url = content_url
         submission.submitted_at = datetime.now(UTC)
         submission.grade = None
         submission.feedback = None
@@ -180,8 +182,38 @@ async def submit_assignment(
             detail="A submission already exists for this assignment",
         ) from exc
 
+    if previous_url and previous_url != content_url:
+        delete_uploaded_file(previous_url)
+
     await session.refresh(submission)
     return submission
+
+
+async def submit_assignment(
+    session: AsyncSession,
+    student: Student,
+    assignment_id: int,
+    data: SubmissionCreate,
+) -> Submission:
+    assignment = await get_student_assignment(session, student, assignment_id)
+    _ensure_before_deadline(assignment)
+    return await _upsert_submission(
+        session, student, assignment, data.content_url
+    )
+
+
+async def submit_assignment_file(
+    session: AsyncSession,
+    student: Student,
+    assignment_id: int,
+    upload: UploadFile,
+) -> Submission:
+    assignment = await get_student_assignment(session, student, assignment_id)
+    _ensure_before_deadline(assignment)
+    content_url = await save_submission_file(upload)
+    return await _upsert_submission(
+        session, student, assignment, content_url
+    )
 
 
 async def list_student_submissions(
@@ -231,11 +263,28 @@ async def update_student_submission(
     submission = await _get_owned_submission(session, student, submission_id)
     _ensure_before_deadline(submission.assignment)
 
+    previous_url = submission.content_url
     submission.content_url = data.content_url
     submission.submitted_at = datetime.now(UTC)
     submission.grade = None
     submission.feedback = None
 
     await session.commit()
+    if previous_url != submission.content_url:
+        delete_uploaded_file(previous_url)
     await session.refresh(submission)
     return submission
+
+
+async def delete_student_submission(
+    session: AsyncSession, student: Student, submission_id: int
+) -> None:
+    submission = await _get_owned_submission(session, student, submission_id)
+    _ensure_before_deadline(submission.assignment)
+
+    content_url = submission.content_url
+    await session.execute(
+        delete(Submission).where(Submission.id == submission_id)
+    )
+    await session.commit()
+    delete_uploaded_file(content_url)

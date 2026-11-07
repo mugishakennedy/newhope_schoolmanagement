@@ -7,6 +7,7 @@ from newhope_schoolmanagenment.schemas import (
     TeacherModuleAssign,
     TeacherModuleRead,
     TeacherRead,
+    TeacherUpdate,
 )
 
 router = APIRouter(prefix="/dos/teachers", tags=["dos-teachers"])
@@ -37,6 +38,36 @@ async def get_teacher(
     teacher_id: int, current_dos: CurrentDOS, session: SessionDep
 ) -> TeacherRead:
     return await teacher_controller.get_teacher(session, teacher_id)
+
+
+@router.patch("/{teacher_id}", response_model=TeacherRead)
+async def update_teacher(
+    teacher_id: int,
+    data: TeacherUpdate,
+    current_dos: CurrentDOS,
+    session: SessionDep,
+) -> TeacherRead:
+    return await teacher_controller.update_teacher(session, teacher_id, data)
+
+
+@router.delete("/{teacher_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_teacher(
+    teacher_id: int, current_dos: CurrentDOS, session: SessionDep
+) -> None:
+    await teacher_controller.delete_teacher(session, teacher_id)
+
+
+@router.delete(
+    "/{teacher_id}/modules/{link_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def unassign_module(
+    teacher_id: int,
+    link_id: int,
+    current_dos: CurrentDOS,
+    session: SessionDep,
+) -> None:
+    await teacher_controller.unassign_module(session, teacher_id, link_id)
 
 
 @router.post(

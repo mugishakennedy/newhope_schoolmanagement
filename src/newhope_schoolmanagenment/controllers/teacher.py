@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,6 +17,7 @@ from newhope_schoolmanagenment.schemas import (
     SubmissionGradeUpdate,
     TeacherCreate,
     TeacherModuleAssign,
+    TeacherUpdate,
 )
 
 
@@ -69,6 +70,88 @@ async def get_teacher(session: AsyncSession, teacher_id: int) -> Teacher:
             detail="Teacher not found",
         )
     return teacher
+
+
+async def update_teacher(
+    session: AsyncSession, teacher_id: int, data: TeacherUpdate
+) -> Teacher:
+    teacher = await get_teacher(session, teacher_id)
+    changes = data.model_dump(exclude_unset=True)
+    password = changes.pop("password", None)
+    if not changes and password is None:
+        return teacher
+
+    new_email = changes.get("email", teacher.email)
+    new_code = changes.get("employee_code", teacher.employee_code)
+    if new_email != teacher.email or new_code != teacher.employee_code:
+        duplicate = await session.scalar(
+            select(Teacher.id).where(
+                (Teacher.email == new_email)
+                | (Teacher.employee_code == new_code),
+                Teacher.id != teacher_id,
+            )
+        )
+        if duplicate is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "A teacher with this email or employee code already exists"
+                ),
+            )
+
+    for field, value in changes.items():
+        setattr(teacher, field, value)
+    if password:
+        teacher.password_hash = hash_password(password)
+
+    try:
+        await session.commit()
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A teacher with this email or employee code already exists",
+        ) from exc
+    await session.refresh(teacher)
+    return teacher
+
+
+async def delete_teacher(session: AsyncSession, teacher_id: int) -> None:
+    await get_teacher(session, teacher_id)
+    await session.execute(delete(Teacher).where(Teacher.id == teacher_id))
+    await session.commit()
+
+
+async def unassign_module(
+    session: AsyncSession, teacher_id: int, link_id: int
+) -> None:
+    await get_teacher(session, teacher_id)
+    link = await session.scalar(
+        select(TeacherModule).where(
+            TeacherModule.id == link_id,
+            TeacherModule.teacher_id == teacher_id,
+        )
+    )
+    if link is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Teacher module assignment not found",
+        )
+    await session.execute(
+        delete(TeacherModule).where(TeacherModule.id == link_id)
+    )
+    await session.commit()
+
+
+async def list_teacher_teaching_links(
+    session: AsyncSession, teacher_id: int
+) -> list[TeacherModule]:
+    result = await session.execute(
+        select(TeacherModule)
+        .where(TeacherModule.teacher_id == teacher_id)
+        .order_by(TeacherModule.id)
+    )
+    return list(result.scalars().all())
 
 
 async def assign_module(

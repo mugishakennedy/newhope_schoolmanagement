@@ -18,6 +18,7 @@ export default defineConfig({
       '/dos': { target: apiTarget, changeOrigin: true },
       '/public': { target: apiTarget, changeOrigin: true },
       '/health': { target: apiTarget, changeOrigin: true },
+      '/uploads': { target: apiTarget, changeOrigin: true },
     },
   },
 })

@@ -1,21 +1,36 @@
-import { api } from '../../api/client'
+import { useState } from 'react'
+
+import { api, errorMessage, mediaUrl } from '../../api/client'
 import type { SubmissionWithAssignment } from '../../api/types'
 import {
   Alert,
   Badge,
+  Button,
   Card,
   EmptyState,
   PageHeader,
   Spinner,
 } from '../../components/ui'
 import { useApi } from '../../hooks/useApi'
-import { formatDateTime, gradeLabel } from '../../utils/format'
+import { formatDateTime, gradeLabel, isPast } from '../../utils/format'
 
 export function StudentSubmissions() {
   const submissions = useApi<SubmissionWithAssignment[]>(
     () => api.get('/students/me/submissions'),
     'student-submissions',
   )
+  const [error, setError] = useState<string | null>(null)
+
+  async function onDelete(item: SubmissionWithAssignment) {
+    if (!window.confirm('Withdraw this submission?')) return
+    setError(null)
+    try {
+      await api.delete(`/students/me/submissions/${item.id}`)
+      submissions.reload()
+    } catch (cause) {
+      setError(errorMessage(cause))
+    }
+  }
 
   if (submissions.loading) {
     return <Spinner label="Loading your submissions" />
@@ -57,6 +72,7 @@ export function StudentSubmissions() {
       </div>
 
       <Card title="Submission history">
+        {error ? <Alert>{error}</Alert> : null}
         {items.length === 0 ? (
           <EmptyState
             title="Nothing submitted yet"
@@ -72,6 +88,7 @@ export function StudentSubmissions() {
                   <th>Submitted</th>
                   <th>Grade</th>
                   <th>Feedback</th>
+                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,7 +101,7 @@ export function StudentSubmissions() {
                         <div className="cell-main">
                           <strong>{submission.assignment.title}</strong>
                           <a
-                            href={submission.content_url}
+                            href={mediaUrl(submission.content_url)}
                             target="_blank"
                             rel="noreferrer"
                             className="text-link"
@@ -106,6 +123,16 @@ export function StudentSubmissions() {
                         ) : (
                           <span className="muted">No feedback yet</span>
                         )}
+                      </td>
+                      <td className="align-right">
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={isPast(submission.assignment.deadline)}
+                          onClick={() => onDelete(submission)}
+                        >
+                          Withdraw
+                        </Button>
                       </td>
                     </tr>
                   )
