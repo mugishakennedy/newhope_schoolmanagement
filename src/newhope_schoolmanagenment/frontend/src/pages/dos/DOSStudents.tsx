@@ -10,10 +10,7 @@ import {
   Card,
   EmptyState,
   Field,
-<<<<<<< HEAD
   Input,
-=======
->>>>>>> bcefb46 (new_upd)
   Modal,
   PageHeader,
   Select,
@@ -36,7 +33,6 @@ export function DOSStudents() {
     return { students, classes }
   }, 'dos-students')
 
-<<<<<<< HEAD
   const [editing, setEditing] = useState<StudentRead | null>(null)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -44,12 +40,8 @@ export function DOSStudents() {
   const [classId, setClassId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-=======
-  const [target, setTarget] = useState<StudentRead | null>(null)
-  const [classId, setClassId] = useState('')
-  const [error, setError] = useState<string | null>(null)
->>>>>>> bcefb46 (new_upd)
   const [busy, setBusy] = useState(false)
 
   const classById = useMemo(() => {
@@ -60,7 +52,6 @@ export function DOSStudents() {
     return map
   }, [data.data])
 
-<<<<<<< HEAD
   function openEdit(student: StudentRead) {
     setEditing(student)
     setFullName(student.full_name)
@@ -69,54 +60,33 @@ export function DOSStudents() {
     setClassId(student.class_id === null ? '' : String(student.class_id))
     setPassword('')
     setError(null)
+    setEditError(null)
   }
 
   async function onEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing) return
-    setError(null)
+    setEditError(null)
     setBusy(true)
     try {
-      const payload: Record<string, unknown> = {
+      const payload = {
         full_name: fullName.trim(),
         email: email.trim(),
         registration_no: registrationNo.trim(),
         class_id: classId ? Number(classId) : null,
+        ...(password ? { password } : {}),
       }
-      if (password) payload.password = password
-      await api.patch<StudentRead>(
-        `/dos/students/${editing.id}`,
-        payload,
-      )
+      await api.patch<StudentRead>(`/dos/students/${editing.id}`, payload)
       setEditing(null)
       setNotice('Student updated.')
-=======
-  function openAssign(student: StudentRead) {
-    setTarget(student)
-    setClassId(student.class_id !== null ? String(student.class_id) : '')
-    setError(null)
-  }
-
-  async function onAssign(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!target) return
-    setError(null)
-    setBusy(true)
-    try {
-      await api.patch<StudentRead>(`/dos/students/${target.id}`, {
-        class_id: classId ? Number(classId) : null,
-      })
-      setTarget(null)
->>>>>>> bcefb46 (new_upd)
       data.reload()
     } catch (cause) {
-      setError(errorMessage(cause))
+      setEditError(errorMessage(cause))
     } finally {
       setBusy(false)
     }
   }
 
-<<<<<<< HEAD
   async function onDelete(student: StudentRead) {
     if (
       !window.confirm(
@@ -136,8 +106,6 @@ export function DOSStudents() {
     }
   }
 
-=======
->>>>>>> bcefb46 (new_upd)
   if (data.loading) return <Spinner label="Loading students" />
   if (data.error) return <Alert>{data.error}</Alert>
 
@@ -153,7 +121,7 @@ export function DOSStudents() {
       />
 
       {notice ? <Alert tone="success">{notice}</Alert> : null}
-      {error && !editing ? <Alert>{error}</Alert> : null}
+      {error ? <Alert>{error}</Alert> : null}
 
       <div className="stats-grid stats-grid-3">
         <div className="stat-card stat-info">
@@ -189,11 +157,7 @@ export function DOSStudents() {
                   <th>Class</th>
                   <th>Email</th>
                   <th>Registered</th>
-<<<<<<< HEAD
                   <th className="align-right">Actions</th>
-=======
-                  <th className="align-right">Action</th>
->>>>>>> bcefb46 (new_upd)
                 </tr>
               </thead>
               <tbody>
@@ -227,14 +191,13 @@ export function DOSStudents() {
                         {formatDate(student.created_at)}
                       </td>
                       <td className="align-right">
-<<<<<<< HEAD
                         <div className="row-actions">
                           <Button
                             size="sm"
                             variant="secondary"
                             onClick={() => openEdit(student)}
                           >
-                            Edit
+                            {student.class_id === null ? 'Edit / place' : 'Edit'}
                           </Button>
                           <Button
                             size="sm"
@@ -244,17 +207,6 @@ export function DOSStudents() {
                             Delete
                           </Button>
                         </div>
-=======
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => openAssign(student)}
-                        >
-                          {student.class_id !== null
-                            ? 'Change class'
-                            : 'Assign class'}
-                        </Button>
->>>>>>> bcefb46 (new_upd)
                       </td>
                     </tr>
                   )
@@ -266,23 +218,13 @@ export function DOSStudents() {
       </Card>
 
       <Modal
-<<<<<<< HEAD
         open={editing !== null}
-        title="Edit student"
-        subtitle="Update details or place the student in a class."
-        onClose={() => {
-          setEditing(null)
-          setError(null)
-        }}
+        title={editing ? `Edit ${editing.full_name}` : 'Edit student'}
+        subtitle="Update student details and class placement."
+        onClose={() => setEditing(null)}
         footer={
           <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setEditing(null)
-                setError(null)
-              }}
-            >
+            <Button variant="ghost" onClick={() => setEditing(null)}>
               Cancel
             </Button>
             <Button
@@ -294,26 +236,12 @@ export function DOSStudents() {
               }
             >
               Save changes
-=======
-        open={target !== null}
-        title={target ? `Place ${target.full_name}` : 'Assign class'}
-        subtitle="The student will immediately see assignments for this class."
-        onClose={() => setTarget(null)}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" form="assign-student-form" busy={busy}>
-              Save placement
->>>>>>> bcefb46 (new_upd)
             </Button>
           </>
         }
       >
-<<<<<<< HEAD
         <form id="edit-student-form" className="form-stack" onSubmit={onEdit}>
-          {error ? <Alert>{error}</Alert> : null}
+          {editError ? <Alert>{editError}</Alert> : null}
           <Field label="Full name">
             <Input
               value={fullName}
@@ -338,12 +266,7 @@ export function DOSStudents() {
               />
             </Field>
           </div>
-          <Field label="Class">
-=======
-        <form id="assign-student-form" className="form-stack" onSubmit={onAssign}>
-          {error ? <Alert>{error}</Alert> : null}
           <Field label="Class" hint="Leave empty to unassign the student.">
->>>>>>> bcefb46 (new_upd)
             <Select
               value={classId}
               onChange={(event) => setClassId(event.target.value)}
@@ -356,7 +279,6 @@ export function DOSStudents() {
               ))}
             </Select>
           </Field>
-<<<<<<< HEAD
           <Field label="New password" hint="Optional. At least 8 characters.">
             <Input
               type="password"
@@ -367,8 +289,6 @@ export function DOSStudents() {
               placeholder="Leave empty to keep current"
             />
           </Field>
-=======
->>>>>>> bcefb46 (new_upd)
         </form>
       </Modal>
     </div>

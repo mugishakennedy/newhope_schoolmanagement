@@ -30,7 +30,7 @@ async def create_student(
     if data.class_id is not None and await session.get(Class, data.class_id) is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Selected course does not exist",
+            detail="Selected class does not exist",
         )
 
     student = Student(
@@ -105,7 +105,6 @@ async def update_student(
     session: AsyncSession, student_id: int, data: StudentUpdate
 ) -> Student:
     student = await get_student(session, student_id)
-<<<<<<< HEAD
     changes = data.model_dump(exclude_unset=True)
     password = changes.pop("password", None)
     if not changes and password is None:
@@ -147,21 +146,6 @@ async def update_student(
         setattr(student, field, value)
     if password:
         student.password_hash = hash_password(password)
-=======
-
-    if "class_id" in data.model_fields_set:
-        if data.class_id is not None and await session.get(
-            Class, data.class_id
-        ) is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Class not found",
-            )
-        student.class_id = data.class_id
-
-    if "full_name" in data.model_fields_set and data.full_name is not None:
-        student.full_name = data.full_name
->>>>>>> bcefb46 (new_upd)
 
     try:
         await session.commit()
@@ -169,7 +153,6 @@ async def update_student(
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-<<<<<<< HEAD
             detail=(
                 "Could not update student. Check that class_id exists "
                 "and email/registration_no are unique."
@@ -183,9 +166,3 @@ async def delete_student(session: AsyncSession, student_id: int) -> None:
     await get_student(session, student_id)
     await session.execute(delete(Student).where(Student.id == student_id))
     await session.commit()
-=======
-            detail="Could not update student",
-        ) from exc
-    await session.refresh(student)
-    return student
->>>>>>> bcefb46 (new_upd)

@@ -36,19 +36,6 @@ class AssignmentUpdate(BaseModel):
         return _normalize_deadline(value)
 
 
-class TeacherAssignmentCreate(BaseModel):
-    module_id: int
-    class_id: int
-    title: str = Field(min_length=1, max_length=200)
-    description: str | None = None
-    deadline: datetime | None = None
-
-    @field_validator("deadline")
-    @classmethod
-    def normalize_deadline(cls, value: datetime | None) -> datetime | None:
-        return _normalize_deadline(value)
-
-
 class TeacherAssignmentUpdate(BaseModel):
     module_id: int | None = None
     class_id: int | None = None

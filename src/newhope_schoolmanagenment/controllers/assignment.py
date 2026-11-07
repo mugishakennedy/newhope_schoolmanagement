@@ -8,13 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from newhope_schoolmanagenment.models import Assignment, TeacherModule
 from newhope_schoolmanagenment.schemas import (
     AssignmentCreate,
-<<<<<<< HEAD
     AssignmentUpdate,
     TeacherAssignmentCreate,
     TeacherAssignmentUpdate,
-=======
-    TeacherAssignmentCreate,
->>>>>>> bcefb46 (new_upd)
 )
 
 
@@ -34,7 +30,6 @@ async def _ensure_teacher_link(
             detail="Teacher is not assigned to this module and class",
         )
 
-<<<<<<< HEAD
 
 async def create_assignment(
     session: AsyncSession, data: AssignmentCreate
@@ -43,11 +38,8 @@ async def create_assignment(
         session, data.teacher_id, data.module_id, data.class_id
     )
 
-    assignment = Assignment(
-=======
     return await _persist_assignment(
         session,
->>>>>>> bcefb46 (new_upd)
         teacher_id=data.teacher_id,
         module_id=data.module_id,
         class_id=data.class_id,
@@ -70,7 +62,7 @@ async def create_teacher_assignment(
     if allowed is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You are not assigned to this course and module",
+            detail="You are not assigned to this class and module",
         )
 
     return await _persist_assignment(
@@ -101,34 +93,6 @@ async def _persist_assignment(
         title=title,
         description=description,
         deadline=deadline,
-    )
-    session.add(assignment)
-    try:
-        await session.commit()
-    except IntegrityError as exc:
-        await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not create assignment",
-        ) from exc
-    await session.refresh(assignment)
-    return assignment
-
-
-async def create_teacher_assignment(
-    session: AsyncSession,
-    teacher_id: int,
-    data: TeacherAssignmentCreate,
-) -> Assignment:
-    await _ensure_teacher_link(session, teacher_id, data.module_id, data.class_id)
-
-    assignment = Assignment(
-        teacher_id=teacher_id,
-        module_id=data.module_id,
-        class_id=data.class_id,
-        title=data.title,
-        description=data.description,
-        deadline=data.deadline,
     )
     session.add(assignment)
     try:

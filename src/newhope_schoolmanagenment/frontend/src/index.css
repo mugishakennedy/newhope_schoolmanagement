@@ -1704,10 +1704,9 @@ a {
 
 .row-actions {
   display: flex;
-<<<<<<< HEAD
   flex-wrap: nowrap;
-  gap: 6px;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .file-input {
@@ -1715,10 +1714,6 @@ a {
   width: 100%;
   font-size: 13px;
   color: var(--ink-soft);
-=======
-  justify-content: flex-end;
-  gap: 8px;
->>>>>>> bcefb46 (new_upd)
 }
 
 /* ---------- Empty / modal ---------- */

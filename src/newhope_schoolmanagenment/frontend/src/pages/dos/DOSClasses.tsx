@@ -29,11 +29,6 @@ export function DOSClasses() {
   const [success, setSuccess] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-<<<<<<< HEAD
-  const [editing, setEditing] = useState<ClassRead | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editYear, setEditYear] = useState('')
-=======
   const [editing, setEditing] = useState<ClassStats | null>(null)
   const [editName, setEditName] = useState('')
   const [editYear, setEditYear] = useState('')
@@ -43,7 +38,6 @@ export function DOSClasses() {
   const [deleting, setDeleting] = useState<ClassStats | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
->>>>>>> bcefb46 (new_upd)
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -66,31 +60,18 @@ export function DOSClasses() {
     }
   }
 
-<<<<<<< HEAD
-  function openEdit(item: ClassRead) {
-    setEditing(item)
-    setEditName(item.class_name)
-    setEditYear(item.academic_year)
-    setError(null)
-=======
   function openEdit(item: ClassStats) {
     setEditing(item)
     setEditName(item.class_name)
     setEditYear(item.academic_year)
     setEditError(null)
->>>>>>> bcefb46 (new_upd)
   }
 
   async function onEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing) return
-<<<<<<< HEAD
-    setError(null)
-    setBusy(true)
-=======
     setEditError(null)
     setEditBusy(true)
->>>>>>> bcefb46 (new_upd)
     try {
       await api.patch<ClassRead>(`/dos/classes/${editing.id}`, {
         class_name: editName.trim(),
@@ -100,30 +81,6 @@ export function DOSClasses() {
       setSuccess('Class updated.')
       classes.reload()
     } catch (cause) {
-<<<<<<< HEAD
-      setError(errorMessage(cause))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onDelete(item: ClassRead) {
-    if (
-      !window.confirm(
-        `Delete ${item.class_name} (${item.academic_year})? Its assignments and teacher links will be removed.`,
-      )
-    ) {
-      return
-    }
-    setError(null)
-    setSuccess(null)
-    try {
-      await api.delete(`/dos/classes/${item.id}`)
-      setSuccess('Class deleted.')
-      classes.reload()
-    } catch (cause) {
-      setError(errorMessage(cause))
-=======
       setEditError(errorMessage(cause))
     } finally {
       setEditBusy(false)
@@ -143,7 +100,6 @@ export function DOSClasses() {
       setDeleteError(errorMessage(cause))
     } finally {
       setDeleteBusy(false)
->>>>>>> bcefb46 (new_upd)
     }
   }
 
@@ -159,12 +115,7 @@ export function DOSClasses() {
 
       <div className="content-grid">
         <Card title="Create a class">
-<<<<<<< HEAD
-          {error && !editing ? <Alert>{error}</Alert> : null}
-          {success ? <Alert tone="success">{success}</Alert> : null}
-=======
           {error ? <Alert>{error}</Alert> : null}
->>>>>>> bcefb46 (new_upd)
           <form className="form-stack" onSubmit={onSubmit}>
             <Field label="Class name">
               <Input
@@ -208,14 +159,10 @@ export function DOSClasses() {
                   <tr>
                     <th>Class</th>
                     <th>Academic year</th>
-<<<<<<< HEAD
-                    <th>ID</th>
-=======
                     <th>Students</th>
                     <th>Teachers</th>
                     <th>Modules</th>
                     <th>Assignments</th>
->>>>>>> bcefb46 (new_upd)
                     <th className="align-right">Actions</th>
                   </tr>
                 </thead>
@@ -228,14 +175,10 @@ export function DOSClasses() {
                       <td>
                         <Badge tone="info">{item.academic_year}</Badge>
                       </td>
-<<<<<<< HEAD
-                      <td className="muted">{item.id}</td>
-=======
                       <td>{item.students}</td>
                       <td>{item.teachers}</td>
                       <td>{item.modules}</td>
                       <td>{item.assignments}</td>
->>>>>>> bcefb46 (new_upd)
                       <td className="align-right">
                         <div className="row-actions">
                           <Button
@@ -248,14 +191,10 @@ export function DOSClasses() {
                           <Button
                             size="sm"
                             variant="danger"
-<<<<<<< HEAD
-                            onClick={() => onDelete(item)}
-=======
                             onClick={() => {
                               setDeleting(item)
                               setDeleteError(null)
                             }}
->>>>>>> bcefb46 (new_upd)
                           >
                             Delete
                           </Button>
@@ -272,39 +211,18 @@ export function DOSClasses() {
 
       <Modal
         open={editing !== null}
-<<<<<<< HEAD
-        title="Edit class"
-        onClose={() => {
-          setEditing(null)
-          setError(null)
-        }}
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setEditing(null)
-                setError(null)
-              }}
-            >
-=======
         title={editing ? `Edit ${editing.class_name}` : 'Edit class'}
         subtitle="Renaming a class keeps its students, teachers, and assignments connected."
         onClose={() => setEditing(null)}
         footer={
           <>
             <Button variant="ghost" onClick={() => setEditing(null)}>
->>>>>>> bcefb46 (new_upd)
               Cancel
             </Button>
             <Button
               type="submit"
               form="edit-class-form"
-<<<<<<< HEAD
-              busy={busy}
-=======
               busy={editBusy}
->>>>>>> bcefb46 (new_upd)
               disabled={!editName.trim() || !editYear.trim()}
             >
               Save changes
@@ -313,11 +231,7 @@ export function DOSClasses() {
         }
       >
         <form id="edit-class-form" className="form-stack" onSubmit={onEdit}>
-<<<<<<< HEAD
-          {error ? <Alert>{error}</Alert> : null}
-=======
           {editError ? <Alert>{editError}</Alert> : null}
->>>>>>> bcefb46 (new_upd)
           <Field label="Class name">
             <Input
               value={editName}
@@ -334,8 +248,6 @@ export function DOSClasses() {
           </Field>
         </form>
       </Modal>
-<<<<<<< HEAD
-=======
 
       <Modal
         open={deleting !== null}
@@ -359,7 +271,6 @@ export function DOSClasses() {
           assignments for this class are removed.
         </p>
       </Modal>
->>>>>>> bcefb46 (new_upd)
     </div>
   )
 }
