@@ -21,6 +21,7 @@ import {
   Spinner,
   Textarea,
 } from '../../components/ui'
+import { QuizAttemptReview } from '../../components/QuizAttemptReview'
 import { useApi } from '../../hooks/useApi'
 import { formatDateTime, gradeLabel } from '../../utils/format'
 
@@ -60,6 +61,9 @@ export function DOSSubmissions() {
   const assignmentTitle = (id: number) =>
     data.data?.assignments.find((item) => item.id === id)?.title ??
     `Assignment ${id}`
+
+  const assignmentIsQuiz = (id: number) =>
+    data.data?.assignments.find((item) => item.id === id)?.kind === 'quiz'
 
   const studentById = useMemo(() => {
     const map = new Map<number, StudentRead>()
@@ -167,14 +171,18 @@ export function DOSSubmissions() {
                       <td>
                         <div className="cell-main">
                           <strong>{assignmentTitle(submission.assignment_id)}</strong>
-                          <a
-                            href={mediaUrl(submission.content_url)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-link"
-                          >
-                            Open work
-                          </a>
+                          {assignmentIsQuiz(submission.assignment_id) ? (
+                            <span className="muted">Quiz submission</span>
+                          ) : (
+                            <a
+                              href={mediaUrl(submission.content_url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-link"
+                            >
+                              Open work
+                            </a>
+                          )}
                         </div>
                       </td>
                       <td>
@@ -254,7 +262,13 @@ export function DOSSubmissions() {
       >
         <form id="dos-grade-form" className="form-stack" onSubmit={onSubmit}>
           {error ? <Alert>{error}</Alert> : null}
-          {active ? (
+          {active && assignmentIsQuiz(active.assignment_id) ? (
+            <QuizAttemptReview
+              basePath="/dos"
+              assignmentId={active.assignment_id}
+              submissionId={active.id}
+            />
+          ) : active ? (
             <a
               href={mediaUrl(active.content_url)}
               target="_blank"

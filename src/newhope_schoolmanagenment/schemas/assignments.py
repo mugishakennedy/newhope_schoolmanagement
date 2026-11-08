@@ -12,6 +12,7 @@ class AssignmentSummary(BaseModel):
 
     id: int
     title: str
+    kind: str
     deadline: datetime | None
     module: ModuleSummary
 

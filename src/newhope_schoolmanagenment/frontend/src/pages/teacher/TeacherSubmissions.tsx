@@ -6,6 +6,7 @@ import type {
   AssignmentDetail,
   SubmissionWithStudent,
 } from '../../api/types'
+import { QuizAttemptReview } from '../../components/QuizAttemptReview'
 import {
   Alert,
   Badge,
@@ -210,7 +211,13 @@ export function TeacherSubmissions() {
       >
         <form id="grade-form" className="form-stack" onSubmit={onSubmit}>
           {error ? <Alert>{error}</Alert> : null}
-          {active ? (
+          {active?.assignment.kind === 'quiz' ? (
+            <QuizAttemptReview
+              basePath="/teacher"
+              assignmentId={active.assignment_id}
+              submissionId={active.id}
+            />
+          ) : active ? (
             <a
               href={mediaUrl(active.content_url)}
               target="_blank"

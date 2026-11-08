@@ -9,8 +9,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from newhope_schoolmanagenment.models.base import Base
 
 if TYPE_CHECKING:
+    from newhope_schoolmanagenment.models.assignment_attachment import (
+        AssignmentAttachment,
+    )
     from newhope_schoolmanagenment.models.classes import Class
     from newhope_schoolmanagenment.models.module import Module
+    from newhope_schoolmanagenment.models.quiz import QuizAttempt, QuizQuestion
     from newhope_schoolmanagenment.models.submission import Submission
     from newhope_schoolmanagenment.models.teacher import Teacher
 
@@ -30,6 +34,12 @@ class Assignment(Base):
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    kind: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="assignment",
+        server_default="assignment",
+    )
     deadline: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), nullable=False
@@ -40,6 +50,19 @@ class Assignment(Base):
     school_class: Mapped[Class] = relationship(back_populates="assignments")
     submissions: Mapped[list[Submission]] = relationship(
         back_populates="assignment", cascade="all, delete"
+    )
+    attachments: Mapped[list[AssignmentAttachment]] = relationship(
+        back_populates="assignment", cascade="all, delete"
+    )
+    quiz_questions: Mapped[list[QuizQuestion]] = relationship(
+        back_populates="assignment",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
+    quiz_attempts: Mapped[list[QuizAttempt]] = relationship(
+        back_populates="assignment",
+        cascade="all, delete",
+        passive_deletes=True,
     )
 
     def __repr__(self) -> str:

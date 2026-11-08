@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+AssignmentKind = Literal["assignment", "quiz"]
 
 
 def _normalize_deadline(value: datetime | None) -> datetime | None:
@@ -15,6 +18,7 @@ class AssignmentCreate(BaseModel):
     class_id: int
     title: str = Field(min_length=1, max_length=200)
     description: str | None = None
+    kind: AssignmentKind = "assignment"
     deadline: datetime | None = None
 
     @field_validator("deadline")
@@ -29,6 +33,7 @@ class AssignmentUpdate(BaseModel):
     class_id: int | None = None
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
+    kind: AssignmentKind | None = None
     deadline: datetime | None = None
 
     @field_validator("deadline")
@@ -42,6 +47,7 @@ class TeacherAssignmentCreate(BaseModel):
     class_id: int
     title: str = Field(min_length=1, max_length=200)
     description: str | None = None
+    kind: AssignmentKind = "assignment"
     deadline: datetime | None = None
 
     @field_validator("deadline")
@@ -55,6 +61,7 @@ class TeacherAssignmentUpdate(BaseModel):
     class_id: int | None = None
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
+    kind: AssignmentKind | None = None
     deadline: datetime | None = None
 
     @field_validator("deadline")
@@ -72,5 +79,6 @@ class AssignmentRead(BaseModel):
     class_id: int
     title: str
     description: str | None
+    kind: str
     deadline: datetime | None
     created_at: datetime

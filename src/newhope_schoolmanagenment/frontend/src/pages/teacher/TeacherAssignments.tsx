@@ -4,11 +4,16 @@ import type { FormEvent } from 'react'
 import { api, errorMessage } from '../../api/client'
 import type {
   AssignmentDetail,
+  AssignmentKind,
+  AssignmentRecord,
   ClassRead,
   ModuleRead,
   SubmissionWithStudent,
   TeacherModuleRead,
 } from '../../api/types'
+import { AssignmentAttachments } from '../../components/AssignmentAttachments'
+import { uploadAssignmentFiles } from '../../utils/upload'
+import { QuizBuilder } from '../../components/QuizBuilder'
 import {
   Alert,
   Badge,
@@ -53,7 +58,13 @@ export function TeacherAssignments() {
   const [linkKey, setLinkKey] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [kind, setKind] = useState<AssignmentKind>('assignment')
   const [deadline, setDeadline] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const [quizTarget, setQuizTarget] = useState<{
+    id: number
+    title: string
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -99,7 +110,9 @@ export function TeacherAssignments() {
     setLinkKey('')
     setTitle('')
     setDescription('')
+    setKind('assignment')
     setDeadline('')
+    setFiles([])
     setError(null)
   }
 
@@ -114,7 +127,9 @@ export function TeacherAssignments() {
     setLinkKey(`${assignment.module.id}:${assignment.school_class.id}`)
     setTitle(assignment.title)
     setDescription(assignment.description ?? '')
+    setKind(assignment.kind)
     setDeadline(toDateTimeLocal(assignment.deadline))
+    setFiles([])
     setError(null)
     setOpen(true)
   }
@@ -141,12 +156,34 @@ export function TeacherAssignments() {
         description: description.trim() || null,
         deadline: deadline ? new Date(deadline).toISOString() : null,
       }
+      let assignmentId: number
       if (editing) {
         await api.patch(`/teacher/assignments/${editing.id}`, payload)
+        assignmentId = editing.id
         setNotice('Assignment updated.')
       } else {
-        await api.post('/teacher/assignments', payload)
+        const created = await api.post<AssignmentRecord>(
+          '/teacher/assignments',
+          { ...payload, kind },
+        )
+        assignmentId = created.id
         setNotice('Assignment published.')
+        if (kind === 'quiz') {
+          setQuizTarget({ id: created.id, title: created.title })
+        }
+      }
+      if (files.length > 0) {
+        try {
+          await uploadAssignmentFiles(
+            '/teacher/assignments',
+            assignmentId,
+            files,
+          )
+        } catch (cause) {
+          setNotice(
+            `Assignment saved, but some resources failed to upload: ${errorMessage(cause)}`,
+          )
+        }
       }
       setOpen(false)
       setEditing(null)
@@ -235,6 +272,9 @@ export function TeacherAssignments() {
                     <td>
                       <div className="cell-main">
                         <strong>{assignment.title}</strong>
+                        {assignment.kind === 'quiz' ? (
+                          <Badge tone="info">Quiz</Badge>
+                        ) : null}
                         {assignment.description ? (
                           <small className="muted">
                             {assignment.description}
@@ -266,6 +306,20 @@ export function TeacherAssignments() {
                     </td>
                     <td className="align-right">
                       <div className="row-actions">
+                        {assignment.kind === 'quiz' ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              setQuizTarget({
+                                id: assignment.id,
+                                title: assignment.title,
+                              })
+                            }
+                          >
+                            Build quiz
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
                           variant="secondary"
@@ -328,7 +382,7 @@ export function TeacherAssignments() {
           onSubmit={onSubmit}
         >
           {error ? <Alert>{error}</Alert> : null}
-          <Field label="Module and class">
+          <Field label="Class">
             <Select
               value={linkKey}
               onChange={(event) => setLinkKey(event.target.value)}
@@ -349,6 +403,24 @@ export function TeacherAssignments() {
               ))}
             </Select>
           </Field>
+          {!editing ? (
+            <Field
+              label="Mode"
+              hint="Choose a file/link assignment or an online quiz."
+            >
+              <Select
+                value={kind}
+                onChange={(event) =>
+                  setKind(event.target.value as AssignmentKind)
+                }
+              >
+                <option value="assignment">
+                  Assignment (file or link submission)
+                </option>
+                <option value="quiz">Quiz (online questions)</option>
+              </Select>
+            </Field>
+          ) : null}
           <Field label="Title">
             <Input
               value={title}
@@ -372,6 +444,13 @@ export function TeacherAssignments() {
               onChange={(event) => setDeadline(event.target.value)}
             />
           </Field>
+          <AssignmentAttachments
+            basePath="/teacher/assignments"
+            assignmentId={editing?.id ?? null}
+            staged={files}
+            onStagedChange={setFiles}
+            onError={setError}
+          />
           {(data.data?.links ?? []).length === 0 ? (
             <Alert tone="gold">
               You have no modules or classes assigned yet. Ask the DOS to
@@ -379,6 +458,22 @@ export function TeacherAssignments() {
             </Alert>
           ) : null}
         </form>
+      </Modal>
+
+      <Modal
+        open={quizTarget !== null}
+        title={quizTarget ? `Quiz · ${quizTarget.title}` : 'Quiz'}
+        subtitle="Build the questions students answer online. Objective questions are graded automatically."
+        onClose={() => setQuizTarget(null)}
+      >
+        {quizTarget ? (
+          <QuizBuilder
+            basePath="/teacher/assignments"
+            assignmentId={quizTarget.id}
+            onSaved={() => data.reload()}
+            onError={setError}
+          />
+        ) : null}
       </Modal>
     </div>
   )

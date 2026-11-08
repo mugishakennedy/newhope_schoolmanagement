@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
@@ -15,27 +17,41 @@ from newhope_schoolmanagenment.schemas import (
 async def create_student(
     session: AsyncSession, data: StudentRegistrationCreate
 ) -> Student:
-    result = await session.execute(
-        select(Student).where(
-            (Student.email == data.email)
-            | (Student.registration_no == data.registration_no)
+    duplicate_filter = Student.email == data.email
+    if data.registration_no is not None:
+        duplicate_filter = duplicate_filter | (
+            Student.registration_no == data.registration_no
         )
-    )
+    result = await session.execute(select(Student).where(duplicate_filter))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=("A student with this email or registration number already exists"),
         )
 
+    registration_no = data.registration_no or f"NH-S-PENDING-{uuid4().hex}"
     student = Student(
         full_name=data.full_name,
         email=data.email,
         password_hash=hash_password(data.password),
-        registration_no=data.registration_no,
+        registration_no=registration_no,
         class_id=data.class_id,
     )
     session.add(student)
     try:
+        if data.registration_no is None:
+            await session.flush()
+            generated_no = f"NH-S-{student.id:04d}"
+            suffix = 1
+            while await session.scalar(
+                select(Student.id).where(
+                    Student.registration_no == generated_no,
+                    Student.id != student.id,
+                )
+            ) is not None:
+                generated_no = f"NH-S-{student.id:04d}-{suffix}"
+                suffix += 1
+            student.registration_no = generated_no
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
