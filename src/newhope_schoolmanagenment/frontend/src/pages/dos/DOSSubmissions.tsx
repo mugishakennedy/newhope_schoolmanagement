@@ -173,7 +173,7 @@ export function DOSSubmissions() {
                           <strong>{assignmentTitle(submission.assignment_id)}</strong>
                           {assignmentIsQuiz(submission.assignment_id) ? (
                             <span className="muted">Quiz submission</span>
-                          ) : (
+                          ) : submission.content_url ? (
                             <a
                               href={mediaUrl(submission.content_url)}
                               target="_blank"
@@ -182,7 +182,9 @@ export function DOSSubmissions() {
                             >
                               Open work
                             </a>
-                          )}
+                          ) : submission.answer_text ? (
+                            <span className="muted">Written answer</span>
+                          ) : null}
                         </div>
                       </td>
                       <td>
@@ -269,14 +271,27 @@ export function DOSSubmissions() {
               submissionId={active.id}
             />
           ) : active ? (
-            <a
-              href={mediaUrl(active.content_url)}
-              target="_blank"
-              rel="noreferrer"
-              className="text-link"
-            >
-              Open submitted work
-            </a>
+            <>
+              {active.answer_text ? (
+                <div className="read-panel">
+                  <span className="eyebrow">Student's answer</span>
+                  <p className="submission-answer">{active.answer_text}</p>
+                </div>
+              ) : null}
+              {active.content_url ? (
+                <a
+                  href={mediaUrl(active.content_url)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-link"
+                >
+                  Open submitted work
+                </a>
+              ) : null}
+              {!active.answer_text && !active.content_url ? (
+                <p className="muted">No work was attached to this submission.</p>
+              ) : null}
+            </>
           ) : null}
           <Field label="Grade" hint="A mark from 0 to 100.">
             <Input

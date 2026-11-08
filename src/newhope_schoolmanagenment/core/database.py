@@ -41,6 +41,18 @@ async def connect() -> None:
                 "NOT NULL DEFAULT 'assignment'"
             )
         )
+        await conn.execute(
+            text(
+                "ALTER TABLE submissions "
+                "ADD COLUMN IF NOT EXISTS answer_text TEXT"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE submissions "
+                "ALTER COLUMN content_url DROP NOT NULL"
+            )
+        )
     print("successfully connected to database")
 
 

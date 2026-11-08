@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { api, errorMessage, mediaUrl } from '../../api/client'
+import { api, errorMessage } from '../../api/client'
 import type {
   AssignmentAttachment,
   AssignmentDetail,
@@ -9,6 +9,7 @@ import type {
   SubmissionRead,
   SubmissionWithAssignment,
 } from '../../api/types'
+import { FilePreview } from '../../components/FilePreview'
 import { StudentQuiz } from '../../components/StudentQuiz'
 import {
   Alert,
@@ -55,6 +56,7 @@ export function StudentAssignments() {
   const [attachments, setAttachments] = useState<AssignmentAttachment[]>([])
   const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [contentUrl, setContentUrl] = useState('')
+  const [answer, setAnswer] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -77,6 +79,7 @@ export function StudentAssignments() {
     const existing = submissionByAssignment.get(assignment.id)
     setActive(assignment)
     setContentUrl(existing?.content_url ?? '')
+    setAnswer(existing?.answer_text ?? '')
     setFile(null)
     setError(null)
     setAttachments([])
@@ -96,9 +99,11 @@ export function StudentAssignments() {
     setBusy(true)
     setError(null)
     try {
+      const answerText = answer.trim()
       if (file) {
         const body = new FormData()
         body.append('file', file)
+        if (answerText) body.append('answer_text', answerText)
         await api.upload<SubmissionRead>(
           `/students/me/assignments/${active.id}/submissions/upload`,
           body,
@@ -106,11 +111,15 @@ export function StudentAssignments() {
       } else {
         await api.post<SubmissionRead>(
           `/students/me/assignments/${active.id}/submissions`,
-          { content_url: contentUrl.trim() },
+          {
+            content_url: contentUrl.trim() || null,
+            answer_text: answerText || null,
+          },
         )
       }
       setActive(null)
       setContentUrl('')
+      setAnswer('')
       setFile(null)
       setAttachments([])
       portal.reload()
@@ -122,6 +131,32 @@ export function StudentAssignments() {
   }
 
   const closed = active ? isPast(active.deadline) : false
+  const activeSubmission = active
+    ? submissionByAssignment.get(active.id)
+    : undefined
+  const activeHasGrade =
+    activeSubmission?.grade !== null && activeSubmission?.grade !== undefined
+
+  function renderResources() {
+    if (attachmentsLoading) {
+      return <p className="muted">Loading resources...</p>
+    }
+    if (attachments.length === 0) {
+      return <p className="muted">No files attached to this assignment.</p>
+    }
+    return (
+      <div className="attachment-list">
+        {attachments.map((attachment) => (
+          <FilePreview
+            key={attachment.id}
+            url={attachment.content_url}
+            name={attachment.original_name}
+            contentType={attachment.content_type}
+          />
+        ))}
+      </div>
+    )
+  }
 
   if (portal.loading) {
     return <Spinner label="Loading assignments" />
@@ -132,7 +167,7 @@ export function StudentAssignments() {
       <PageHeader
         eyebrow="Coursework"
         title="Assignments"
-        subtitle="Submit a link to your work before the deadline. You can update it until the deadline passes."
+        subtitle="Read the assessment, write your answer, and submit before the deadline. Submitted work is final, so you will wait for your grade."
         action={
           <Select
             value={moduleFilter}
@@ -232,8 +267,8 @@ export function StudentAssignments() {
                                 ? 'View result'
                                 : 'Start quiz'
                               : submission
-                                ? 'Update'
-                                : 'Submit'}
+                                ? 'View'
+                                : 'Open'}
                         </Button>
                       </td>
                     </tr>
@@ -256,18 +291,34 @@ export function StudentAssignments() {
         onClose={() => {
           setActive(null)
           setFile(null)
+          setAnswer('')
           setError(null)
           setAttachments([])
           setAttachmentsLoading(false)
         }}
         footer={
-          active?.kind === 'quiz' ? undefined : (
+          active?.kind === 'quiz' ? undefined : activeSubmission ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setActive(null)
+                setFile(null)
+                setAnswer('')
+                setError(null)
+                setAttachments([])
+                setAttachmentsLoading(false)
+              }}
+            >
+              Close
+            </Button>
+          ) : (
             <>
               <Button
                 variant="ghost"
                 onClick={() => {
                   setActive(null)
                   setFile(null)
+                  setAnswer('')
                   setError(null)
                   setAttachments([])
                   setAttachmentsLoading(false)
@@ -279,7 +330,10 @@ export function StudentAssignments() {
                 type="submit"
                 form="submit-assignment-form"
                 busy={busy}
-                disabled={closed || (!file && !contentUrl.trim())}
+                disabled={
+                  closed ||
+                  (!file && !contentUrl.trim() && !answer.trim())
+                }
               >
                 Submit work
               </Button>
@@ -295,6 +349,51 @@ export function StudentAssignments() {
               setActive(null)
             }}
           />
+        ) : activeSubmission ? (
+          <div className="form-stack">
+            {active?.description ? (
+              <div className="read-panel">
+                <span className="eyebrow">Assessment</span>
+                <p>{active.description}</p>
+              </div>
+            ) : null}
+            <div className="read-panel">
+              <span className="eyebrow">Your answer</span>
+              {activeSubmission.answer_text ? (
+                <p className="submission-answer">
+                  {activeSubmission.answer_text}
+                </p>
+              ) : (
+                <p className="muted">No written answer was submitted.</p>
+              )}
+              {activeSubmission.content_url ? (
+                <FilePreview url={activeSubmission.content_url} />
+              ) : null}
+            </div>
+            <div className="read-panel">
+              <span className="eyebrow">Grade</span>
+              {activeHasGrade ? (
+                <>
+                  <p>{gradeLabel(activeSubmission.grade)}</p>
+                  {activeSubmission.feedback ? (
+                    <p className="muted">{activeSubmission.feedback}</p>
+                  ) : null}
+                </>
+              ) : (
+                <p className="muted">
+                  Waiting for your teacher to grade this submission.
+                </p>
+              )}
+            </div>
+            <p className="muted">
+              Submitted {formatDateTime(activeSubmission.submitted_at)}.
+              Submitted work is final and cannot be changed.
+            </p>
+            <div className="read-panel">
+              <span className="eyebrow">Resources</span>
+              {renderResources()}
+            </div>
+          </div>
         ) : (
         <form
           id="submit-assignment-form"
@@ -303,38 +402,31 @@ export function StudentAssignments() {
         >
           {closed ? (
             <Alert tone="gold">
-              The deadline for this assignment has passed. You can still
-              download the resources below.
+              The deadline for this assignment has passed. You can still read
+              the assessment and download the resources below.
             </Alert>
           ) : null}
           {error ? <Alert>{error}</Alert> : null}
-          <div className="read-panel">
-            <span className="eyebrow">Resources</span>
-            {attachmentsLoading ? (
-              <p className="muted">Loading resources...</p>
-            ) : attachments.length === 0 ? (
-              <p className="muted">No files attached to this assignment.</p>
-            ) : (
-              <div className="attachment-list">
-                {attachments.map((attachment) => (
-                  <div className="attachment-item" key={attachment.id}>
-                    <div className="attachment-meta">
-                      <a
-                        href={mediaUrl(attachment.content_url)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {attachment.original_name}
-                      </a>
-                      <small>{attachment.content_type ?? 'Download'}</small>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {active?.description ? (
+            <div className="read-panel">
+              <span className="eyebrow">Assessment</span>
+              <p>{active.description}</p>
+            </div>
+          ) : null}
           <Field
-            label="Upload a file"
+            label="Your answer"
+            hint="Type your answer here. You can also attach a file or add a link below."
+          >
+            <Textarea
+              value={answer}
+              onChange={(event) => setAnswer(event.target.value)}
+              placeholder="Write your answer..."
+              rows={6}
+              disabled={closed}
+            />
+          </Field>
+          <Field
+            label="Upload a file (optional)"
             hint="Choose a file from your device. Maximum size is 25 MB."
           >
             <input
@@ -346,7 +438,7 @@ export function StudentAssignments() {
             />
           </Field>
           <Field
-            label="Or link to your work"
+            label="Or link to your work (optional)"
             hint="Paste a link to a document or repository instead of uploading."
           >
             <Textarea
@@ -363,12 +455,10 @@ export function StudentAssignments() {
               <p>{file.name}</p>
             </div>
           ) : null}
-          {active?.description ? (
-            <div className="read-panel">
-              <span className="eyebrow">Instructions</span>
-              <p>{active.description}</p>
-            </div>
-          ) : null}
+          <div className="read-panel">
+            <span className="eyebrow">Resources</span>
+            {renderResources()}
+          </div>
         </form>
         )}
       </Modal>

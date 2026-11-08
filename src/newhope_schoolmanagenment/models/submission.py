@@ -48,7 +48,8 @@ class Submission(Base):
         nullable=False,
         index=True,
     )
-    content_url: Mapped[str] = mapped_column(Text, nullable=False)
+    content_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answer_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     grade: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(

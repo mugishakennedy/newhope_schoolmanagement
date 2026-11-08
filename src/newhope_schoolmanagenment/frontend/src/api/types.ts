@@ -125,7 +125,8 @@ export interface SubmissionRead {
   id: number
   assignment_id: number
   student_id: number
-  content_url: string
+  content_url: string | null
+  answer_text: string | null
   grade: string | number | null
   feedback: string | null
   submitted_at: string

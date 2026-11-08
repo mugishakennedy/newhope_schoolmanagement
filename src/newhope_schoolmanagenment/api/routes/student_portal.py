@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, File, Query, UploadFile, status
+from fastapi import APIRouter, File, Form, Query, UploadFile, status
 
 from newhope_schoolmanagenment.api.deps import CurrentStudent, SessionDep
 from newhope_schoolmanagenment.controllers import (
@@ -172,9 +172,10 @@ async def upload_assignment_submission(
     current_student: CurrentStudent,
     session: SessionDep,
     file: Annotated[UploadFile, File()],
+    answer_text: Annotated[str | None, Form()] = None,
 ) -> Submission:
     return await portal.submit_assignment_file(
-        session, current_student, assignment_id, file
+        session, current_student, assignment_id, file, answer_text
     )
 
 

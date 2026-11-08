@@ -89,6 +89,7 @@ async def _persist_assignment(
     class_id: int,
     title: str,
     description: str | None,
+    kind: str,
     deadline: datetime | None,
 ) -> Assignment:
     assignment = Assignment(
@@ -97,6 +98,7 @@ async def _persist_assignment(
         class_id=class_id,
         title=title,
         description=description,
+        kind=kind,
         deadline=deadline,
     )
     session.add(assignment)

@@ -1,11 +1,12 @@
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from newhope_schoolmanagenment.core import database
 from newhope_schoolmanagenment.core.security import hash_password
+from newhope_schoolmanagenment.core.time import utcnow
 from newhope_schoolmanagenment.models import (
     Assignment,
     Class,
@@ -161,7 +162,7 @@ async def seed(session: AsyncSession) -> None:
         await _get_teacher(session, "Carol Teacher", "carol@newhope.test", "NH-T-003"),
     ]
 
-    deadline = datetime.now(UTC) + timedelta(days=14)
+    deadline = utcnow() + timedelta(days=14)
     for teacher, module in zip(teachers, modules, strict=True):
         await _get_assignment(
             session,

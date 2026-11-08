@@ -1,36 +1,22 @@
-import { useState } from 'react'
-
-import { api, errorMessage, mediaUrl } from '../../api/client'
+import { api } from '../../api/client'
 import type { SubmissionWithAssignment } from '../../api/types'
+import { FilePreview } from '../../components/FilePreview'
 import {
   Alert,
   Badge,
-  Button,
   Card,
   EmptyState,
   PageHeader,
   Spinner,
 } from '../../components/ui'
 import { useApi } from '../../hooks/useApi'
-import { formatDateTime, gradeLabel, isPast } from '../../utils/format'
+import { formatDateTime, gradeLabel } from '../../utils/format'
 
 export function StudentSubmissions() {
   const submissions = useApi<SubmissionWithAssignment[]>(
     () => api.get('/students/me/submissions'),
     'student-submissions',
   )
-  const [error, setError] = useState<string | null>(null)
-
-  async function onDelete(item: SubmissionWithAssignment) {
-    if (!window.confirm('Withdraw this submission?')) return
-    setError(null)
-    try {
-      await api.delete(`/students/me/submissions/${item.id}`)
-      submissions.reload()
-    } catch (cause) {
-      setError(errorMessage(cause))
-    }
-  }
 
   if (submissions.loading) {
     return <Spinner label="Loading your submissions" />
@@ -72,11 +58,10 @@ export function StudentSubmissions() {
       </div>
 
       <Card title="Submission history">
-        {error ? <Alert>{error}</Alert> : null}
         {items.length === 0 ? (
           <EmptyState
             title="Nothing submitted yet"
-            description="Open an assignment and submit a link to your work."
+            description="Open an assignment, write your answer, and submit it to see it here."
           />
         ) : (
           <div className="table-wrap">
@@ -88,7 +73,6 @@ export function StudentSubmissions() {
                   <th>Submitted</th>
                   <th>Grade</th>
                   <th>Feedback</th>
-                  <th className="align-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,14 +87,20 @@ export function StudentSubmissions() {
                           {submission.assignment.kind === 'quiz' ? (
                             <span className="muted">Quiz submission</span>
                           ) : (
-                            <a
-                              href={mediaUrl(submission.content_url)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-link"
-                            >
-                              Open work
-                            </a>
+                            <>
+                              {submission.answer_text ? (
+                                <small className="muted answer-snippet">
+                                  {submission.answer_text}
+                                </small>
+                              ) : null}
+                              {submission.content_url ? (
+                                <FilePreview
+                                  compact
+                                  url={submission.content_url}
+                                  name="Submitted file"
+                                />
+                              ) : null}
+                            </>
                           )}
                         </div>
                       </td>
@@ -127,16 +117,6 @@ export function StudentSubmissions() {
                         ) : (
                           <span className="muted">No feedback yet</span>
                         )}
-                      </td>
-                      <td className="align-right">
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          disabled={isPast(submission.assignment.deadline)}
-                          onClick={() => onDelete(submission)}
-                        >
-                          Withdraw
-                        </Button>
                       </td>
                     </tr>
                   )

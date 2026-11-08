@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { api, errorMessage, mediaUrl } from '../../api/client'
+import { api, errorMessage } from '../../api/client'
 import type {
   AssignmentDetail,
   SubmissionWithStudent,
 } from '../../api/types'
+import { FilePreview } from '../../components/FilePreview'
 import { QuizAttemptReview } from '../../components/QuizAttemptReview'
 import {
   Alert,
@@ -218,14 +219,23 @@ export function TeacherSubmissions() {
               submissionId={active.id}
             />
           ) : active ? (
-            <a
-              href={mediaUrl(active.content_url)}
-              target="_blank"
-              rel="noreferrer"
-              className="text-link"
-            >
-              Open submitted work
-            </a>
+            <>
+              {active.answer_text ? (
+                <div className="read-panel">
+                  <span className="eyebrow">Student's answer</span>
+                  <p className="submission-answer">{active.answer_text}</p>
+                </div>
+              ) : null}
+              {active.content_url ? (
+                <div className="read-panel">
+                  <span className="eyebrow">Submitted work</span>
+                  <FilePreview url={active.content_url} />
+                </div>
+              ) : null}
+              {!active.answer_text && !active.content_url ? (
+                <p className="muted">No work was attached to this submission.</p>
+              ) : null}
+            </>
           ) : null}
           <Field label="Grade" hint="A mark from 0 to 100.">
             <Input

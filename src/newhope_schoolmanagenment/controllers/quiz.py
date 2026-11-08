@@ -6,6 +6,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from newhope_schoolmanagenment.core.time import utcnow
 from newhope_schoolmanagenment.models import (
     Assignment,
     QuizAnswer,
@@ -277,7 +278,7 @@ async def submit_quiz(
         if max_total > 0
         else Decimal(0)
     ).quantize(Decimal("0.01"))
-    submitted_at = datetime.now(UTC)
+    submitted_at = utcnow()
     feedback = (
         "Auto-graded quiz: "
         f"{_format_points(total)}/{_format_points(max_total)}"

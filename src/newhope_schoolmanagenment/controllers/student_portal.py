@@ -1,15 +1,13 @@
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from newhope_schoolmanagenment.core.storage import (
-    delete_uploaded_file,
-    save_submission_file,
-)
+from newhope_schoolmanagenment.core.storage import save_submission_file
+from newhope_schoolmanagenment.core.time import utcnow
 from newhope_schoolmanagenment.models import (
     Assignment,
     Class,
@@ -52,6 +50,25 @@ def _ensure_before_deadline(assignment: Assignment) -> None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="The submission deadline has passed",
+        )
+
+
+async def _ensure_not_submitted(
+    session: AsyncSession, student: Student, assignment: Assignment
+) -> None:
+    existing = await session.scalar(
+        select(Submission.id).where(
+            Submission.assignment_id == assignment.id,
+            Submission.student_id == student.id,
+        )
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This assignment has already been submitted. Submitted work "
+                "is final and cannot be changed."
+            ),
         )
 
 
@@ -156,30 +173,40 @@ async def _upsert_submission(
     session: AsyncSession,
     student: Student,
     assignment: Assignment,
-    content_url: str,
+    content_url: str | None,
+    answer_text: str | None,
 ) -> Submission:
+    content_url = content_url.strip() if content_url else None
+    answer_text = answer_text.strip() if answer_text else None
+    if answer_text and len(answer_text) > 20000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Answer text is too long (maximum 20000 characters)",
+        )
     result = await session.execute(
         select(Submission).where(
             Submission.assignment_id == assignment.id,
             Submission.student_id == student.id,
         )
     )
-    submission = result.scalar_one_or_none()
-    previous_url = submission.content_url if submission is not None else None
-
-    if submission is None:
-        submission = Submission(
-            assignment_id=assignment.id,
-            student_id=student.id,
-            content_url=content_url,
-            submitted_at=datetime.now(UTC),
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This assignment has already been submitted. Submitted work "
+                "is final and cannot be changed."
+            ),
         )
-        session.add(submission)
-    else:
-        submission.content_url = content_url
-        submission.submitted_at = datetime.now(UTC)
-        submission.grade = None
-        submission.feedback = None
+
+    submission = Submission(
+        assignment_id=assignment.id,
+        student_id=student.id,
+        content_url=content_url,
+        answer_text=answer_text,
+        submitted_at=utcnow(),
+    )
+    session.add(submission)
 
     try:
         await session.commit()
@@ -187,11 +214,11 @@ async def _upsert_submission(
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A submission already exists for this assignment",
+            detail=(
+                "This assignment has already been submitted. Submitted work "
+                "is final and cannot be changed."
+            ),
         ) from exc
-
-    if previous_url and previous_url != content_url:
-        delete_uploaded_file(previous_url)
 
     await session.refresh(submission)
     return submission
@@ -206,8 +233,13 @@ async def submit_assignment(
     assignment = await get_student_assignment(session, student, assignment_id)
     _ensure_not_quiz(assignment)
     _ensure_before_deadline(assignment)
+    await _ensure_not_submitted(session, student, assignment)
     return await _upsert_submission(
-        session, student, assignment, data.content_url
+        session,
+        student,
+        assignment,
+        data.content_url,
+        data.answer_text,
     )
 
 
@@ -216,13 +248,19 @@ async def submit_assignment_file(
     student: Student,
     assignment_id: int,
     upload: UploadFile,
+    answer_text: str | None = None,
 ) -> Submission:
     assignment = await get_student_assignment(session, student, assignment_id)
     _ensure_not_quiz(assignment)
     _ensure_before_deadline(assignment)
+    await _ensure_not_submitted(session, student, assignment)
     content_url = await save_submission_file(upload)
     return await _upsert_submission(
-        session, student, assignment, content_url
+        session,
+        student,
+        assignment,
+        content_url,
+        answer_text,
     )
 
 
@@ -271,31 +309,23 @@ async def update_student_submission(
     data: SubmissionUpdate,
 ) -> Submission:
     submission = await _get_owned_submission(session, student, submission_id)
-    _ensure_not_quiz(submission.assignment)
-    _ensure_before_deadline(submission.assignment)
-
-    previous_url = submission.content_url
-    submission.content_url = data.content_url
-    submission.submitted_at = datetime.now(UTC)
-    submission.grade = None
-    submission.feedback = None
-
-    await session.commit()
-    if previous_url != submission.content_url:
-        delete_uploaded_file(previous_url)
-    await session.refresh(submission)
-    return submission
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=(
+            f"Submission {submission.id} is final. Submitted work cannot be "
+            "changed while you wait for a grade."
+        ),
+    )
 
 
 async def delete_student_submission(
     session: AsyncSession, student: Student, submission_id: int
 ) -> None:
     submission = await _get_owned_submission(session, student, submission_id)
-    _ensure_before_deadline(submission.assignment)
-
-    content_url = submission.content_url
-    await session.execute(
-        delete(Submission).where(Submission.id == submission_id)
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=(
+            f"Submission {submission.id} cannot be withdrawn. Submitted work "
+            "is final."
+        ),
     )
-    await session.commit()
-    delete_uploaded_file(content_url)

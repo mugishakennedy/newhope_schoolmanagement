@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { ApiError, api, errorMessage, mediaUrl } from '../api/client'
+import { ApiError, api, errorMessage } from '../api/client'
 import type {
   AssignmentAttachment,
   AssignmentDetail,
@@ -10,6 +10,7 @@ import type {
 } from '../api/types'
 import { formatDateTime, isPast } from '../utils/format'
 import { Alert, Badge, Button, Input, Spinner } from './ui'
+import { FilePreview } from './FilePreview'
 
 interface SelectedAnswer {
   optionId?: number
@@ -208,17 +209,12 @@ export function StudentQuiz({ assignment, onSubmitted }: StudentQuizProps) {
           <span className="eyebrow">Resources</span>
           <div className="attachment-list">
             {attachments.map((attachment) => (
-              <div className="attachment-item" key={attachment.id}>
-                <div className="attachment-meta">
-                  <a
-                    href={mediaUrl(attachment.content_url)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {attachment.original_name}
-                  </a>
-                </div>
-              </div>
+              <FilePreview
+                key={attachment.id}
+                url={attachment.content_url}
+                name={attachment.original_name}
+                contentType={attachment.content_type}
+              />
             ))}
           </div>
         </div>

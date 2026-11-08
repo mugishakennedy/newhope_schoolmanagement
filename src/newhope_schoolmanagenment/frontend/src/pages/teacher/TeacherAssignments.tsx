@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 
 import { api, errorMessage } from '../../api/client'
 import type {
+  AssignmentAttachment,
   AssignmentDetail,
   AssignmentKind,
   AssignmentRecord,
@@ -12,6 +13,7 @@ import type {
   TeacherModuleOption,
 } from '../../api/types'
 import { AssignmentAttachments } from '../../components/AssignmentAttachments'
+import { AssignmentPreview } from '../../components/AssignmentPreview'
 import { uploadAssignmentFiles } from '../../utils/upload'
 import { QuizBuilder } from '../../components/QuizBuilder'
 import {
@@ -59,6 +61,15 @@ export function TeacherAssignments() {
   const [kind, setKind] = useState<AssignmentKind>('assignment')
   const [deadline, setDeadline] = useState('')
   const [files, setFiles] = useState<File[]>([])
+  const [editAttachments, setEditAttachments] = useState<
+    AssignmentAttachment[]
+  >([])
+  const [previewDraft, setPreviewDraft] = useState(false)
+  const [viewTarget, setViewTarget] = useState<AssignmentDetail | null>(null)
+  const [viewAttachments, setViewAttachments] = useState<
+    AssignmentAttachment[]
+  >([])
+  const [viewLoading, setViewLoading] = useState(false)
   const [quizTarget, setQuizTarget] = useState<{
     id: number
     title: string
@@ -113,6 +124,8 @@ export function TeacherAssignments() {
     setKind('assignment')
     setDeadline('')
     setFiles([])
+    setEditAttachments([])
+    setPreviewDraft(false)
     setError(null)
   }
 
@@ -137,8 +150,32 @@ export function TeacherAssignments() {
     setKind(assignment.kind)
     setDeadline(toDateTimeLocal(assignment.deadline))
     setFiles([])
+    setEditAttachments([])
+    setPreviewDraft(false)
     setError(null)
     setOpen(true)
+    api
+      .get<AssignmentAttachment[]>(
+        `/teacher/assignments/${assignment.id}/attachments`,
+      )
+      .then(setEditAttachments)
+      .catch(() => setEditAttachments([]))
+  }
+
+  async function openView(assignment: AssignmentDetail) {
+    setViewTarget(assignment)
+    setViewAttachments([])
+    setViewLoading(true)
+    try {
+      const list = await api.get<AssignmentAttachment[]>(
+        `/teacher/assignments/${assignment.id}/attachments`,
+      )
+      setViewAttachments(list)
+    } catch {
+      setViewAttachments([])
+    } finally {
+      setViewLoading(false)
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -320,6 +357,13 @@ export function TeacherAssignments() {
                     </td>
                     <td className="align-right">
                       <div className="row-actions">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openView(assignment)}
+                        >
+                          View
+                        </Button>
                         {assignment.kind === 'quiz' ? (
                           <Button
                             size="sm"
@@ -455,12 +499,15 @@ export function TeacherAssignments() {
               required
             />
           </Field>
-          <Field label="Description" hint="Optional instructions for students.">
+          <Field
+            label="Assessment / instructions"
+            hint="Optional. Tell students what to do, what is assessed, and how to answer."
+          >
             <Textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              rows={3}
-              placeholder="What should students do?"
+              rows={5}
+              placeholder="Write the assessment or instructions for this assignment..."
             />
           </Field>
           <Field
@@ -480,6 +527,30 @@ export function TeacherAssignments() {
             onStagedChange={setFiles}
             onError={setError}
           />
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setPreviewDraft((value) => !value)}
+          >
+            {previewDraft ? 'Hide preview' : 'Preview as student'}
+          </Button>
+          {previewDraft ? (
+            <AssignmentPreview
+              title={title}
+              description={description}
+              kind={editing?.kind ?? kind}
+              deadline={deadline ? new Date(deadline).toISOString() : null}
+              moduleLabel={
+                modulesForCourse.find((item) => item.id === Number(moduleId))
+                  ?.module_name
+              }
+              courseLabel={
+                courses.find((item) => item.id === Number(classId))?.class_name
+              }
+              attachments={editAttachments}
+              staged={files}
+            />
+          ) : null}
           {!canCreate ? (
             <Alert tone="gold">
               You have no courses or modules assigned yet. Ask the DOS to assign
@@ -487,6 +558,36 @@ export function TeacherAssignments() {
             </Alert>
           ) : null}
         </form>
+      </Modal>
+
+      <Modal
+        open={viewTarget !== null}
+        title={viewTarget ? viewTarget.title : 'Assignment'}
+        subtitle={
+          viewTarget
+            ? `${viewTarget.module.module_name} · ${viewTarget.school_class.class_name}`
+            : undefined
+        }
+        onClose={() => setViewTarget(null)}
+        footer={
+          <Button variant="secondary" onClick={() => setViewTarget(null)}>
+            Close
+          </Button>
+        }
+      >
+        {viewLoading ? (
+          <Spinner label="Loading assignment" />
+        ) : viewTarget ? (
+          <AssignmentPreview
+            title={viewTarget.title}
+            description={viewTarget.description}
+            kind={viewTarget.kind}
+            deadline={viewTarget.deadline}
+            moduleLabel={viewTarget.module.module_name}
+            courseLabel={viewTarget.school_class.class_name}
+            attachments={viewAttachments}
+          />
+        ) : null}
       </Modal>
 
       <Modal
