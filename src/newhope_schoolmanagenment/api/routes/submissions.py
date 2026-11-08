@@ -1,10 +1,12 @@
 from fastapi import APIRouter, status
 
 from newhope_schoolmanagenment.api.deps import CurrentDOS, SessionDep
+from newhope_schoolmanagenment.controllers import quiz as quiz_controller
 from newhope_schoolmanagenment.controllers import (
     submission as submission_controller,
 )
 from newhope_schoolmanagenment.schemas import (
+    QuizAttemptRead,
     SubmissionGradeUpdate,
     SubmissionRead,
 )
@@ -29,6 +31,21 @@ async def get_submission(
 ) -> SubmissionRead:
     return await submission_controller.get_submission(
         session, submission_id
+    )
+
+
+@router.get(
+    "/{submission_id}/quiz",
+    response_model=QuizAttemptRead,
+)
+async def read_submission_quiz(
+    submission_id: int, current_dos: CurrentDOS, session: SessionDep
+) -> QuizAttemptRead:
+    submission = await submission_controller.get_submission(
+        session, submission_id
+    )
+    return await quiz_controller.get_attempt_for_submission(
+        session, submission
     )
 
 

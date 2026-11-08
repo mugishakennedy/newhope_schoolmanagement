@@ -3,6 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, File, Query, UploadFile, status
 
 from newhope_schoolmanagenment.api.deps import CurrentStudent, SessionDep
+from newhope_schoolmanagenment.controllers import (
+    attachment as attachment_controller,
+)
+from newhope_schoolmanagenment.controllers import quiz as quiz_controller
 from newhope_schoolmanagenment.controllers import student_portal as portal
 from newhope_schoolmanagenment.models import (
     Assignment,
@@ -11,11 +15,17 @@ from newhope_schoolmanagenment.models import (
     Submission,
     Teacher,
 )
+from newhope_schoolmanagenment.schemas import AttachmentRead
 from newhope_schoolmanagenment.schemas.assignments import (
     AssignmentRead as AssignmentDetail,
 )
 from newhope_schoolmanagenment.schemas.classes import ClassRead
 from newhope_schoolmanagenment.schemas.modules import ModuleRead
+from newhope_schoolmanagenment.schemas.quiz import (
+    QuizAttemptInput,
+    QuizAttemptRead,
+    QuizRead,
+)
 from newhope_schoolmanagenment.schemas.submissions import (
     SubmissionCreate,
     SubmissionRead,
@@ -68,6 +78,71 @@ async def read_student_assignment(
 ) -> Assignment:
     return await portal.get_student_assignment(
         session, current_student, assignment_id
+    )
+
+
+@router.get(
+    "/assignments/{assignment_id}/quiz",
+    response_model=QuizRead,
+)
+async def read_student_quiz(
+    assignment_id: int, current_student: CurrentStudent, session: SessionDep
+) -> QuizRead:
+    assignment = await portal.get_student_assignment(
+        session, current_student, assignment_id
+    )
+    questions = await quiz_controller.list_questions(session, assignment)
+    return QuizRead(assignment_id=assignment.id, questions=questions)
+
+
+@router.get(
+    "/assignments/{assignment_id}/quiz/attempt",
+    response_model=QuizAttemptRead,
+)
+async def read_student_quiz_attempt(
+    assignment_id: int, current_student: CurrentStudent, session: SessionDep
+) -> QuizAttemptRead:
+    assignment = await portal.get_student_assignment(
+        session, current_student, assignment_id
+    )
+    return await quiz_controller.get_student_attempt(
+        session, current_student, assignment
+    )
+
+
+@router.post(
+    "/assignments/{assignment_id}/quiz/attempts",
+    response_model=QuizAttemptRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_student_quiz(
+    assignment_id: int,
+    data: QuizAttemptInput,
+    current_student: CurrentStudent,
+    session: SessionDep,
+) -> QuizAttemptRead:
+    assignment = await portal.get_student_assignment(
+        session, current_student, assignment_id
+    )
+    return await quiz_controller.submit_quiz(
+        session, current_student, assignment, data
+    )
+
+
+@router.get(
+    "/assignments/{assignment_id}/attachments",
+    response_model=list[AttachmentRead],
+)
+async def list_student_assignment_attachments(
+    assignment_id: int,
+    current_student: CurrentStudent,
+    session: SessionDep,
+):
+    await portal.get_student_assignment(
+        session, current_student, assignment_id
+    )
+    return await attachment_controller.list_assignment_attachments(
+        session, assignment_id
     )
 
 

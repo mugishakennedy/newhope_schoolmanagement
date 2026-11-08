@@ -5,6 +5,7 @@ from newhope_schoolmanagenment.schemas.assignment import (
     TeacherAssignmentCreate,
     TeacherAssignmentUpdate,
 )
+from newhope_schoolmanagenment.schemas.attachment import AttachmentRead
 from newhope_schoolmanagenment.schemas.auth import (
     MessageResponse,
     TokenResponse,
@@ -23,6 +24,21 @@ from newhope_schoolmanagenment.schemas.module import (
     ModuleCreate,
     ModuleRead,
     ModuleUpdate,
+)
+from newhope_schoolmanagenment.schemas.quiz import (
+    QuizAnswerInput,
+    QuizAnswerRead,
+    QuizAttemptInput,
+    QuizAttemptRead,
+    QuizOptionInput,
+    QuizOptionRead,
+    QuizOptionTeacherRead,
+    QuizPayload,
+    QuizQuestionInput,
+    QuizQuestionRead,
+    QuizQuestionTeacherRead,
+    QuizRead,
+    QuizTeacherRead,
 )
 from newhope_schoolmanagenment.schemas.student_registration import (
     StudentLoginRequest,
@@ -50,6 +66,7 @@ __all__ = [
     "AssignmentCreate",
     "AssignmentRead",
     "AssignmentUpdate",
+    "AttachmentRead",
     "ClassCreate",
     "ClassRead",
     "ClassUpdate",
@@ -60,6 +77,19 @@ __all__ = [
     "ModuleCreate",
     "ModuleRead",
     "ModuleUpdate",
+    "QuizAnswerInput",
+    "QuizAnswerRead",
+    "QuizAttemptInput",
+    "QuizAttemptRead",
+    "QuizOptionInput",
+    "QuizOptionRead",
+    "QuizOptionTeacherRead",
+    "QuizPayload",
+    "QuizQuestionInput",
+    "QuizQuestionRead",
+    "QuizQuestionTeacherRead",
+    "QuizRead",
+    "QuizTeacherRead",
     "StudentLoginRequest",
     "StudentLoginResponse",
     "StudentRegistrationCreate",

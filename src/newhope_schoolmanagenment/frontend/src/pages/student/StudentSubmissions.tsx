@@ -100,14 +100,18 @@ export function StudentSubmissions() {
                       <td>
                         <div className="cell-main">
                           <strong>{submission.assignment.title}</strong>
-                          <a
-                            href={mediaUrl(submission.content_url)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-link"
-                          >
-                            Open work
-                          </a>
+                          {submission.assignment.kind === 'quiz' ? (
+                            <span className="muted">Quiz submission</span>
+                          ) : (
+                            <a
+                              href={mediaUrl(submission.content_url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-link"
+                            >
+                              Open work
+                            </a>
+                          )}
                         </div>
                       </td>
                       <td>{submission.assignment.module.module_name}</td>

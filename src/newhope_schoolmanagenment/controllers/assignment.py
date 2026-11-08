@@ -3,6 +3,9 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from newhope_schoolmanagenment.controllers.attachment import (
+    purge_files_for_assignments,
+)
 from newhope_schoolmanagenment.models import Assignment, TeacherModule
 from newhope_schoolmanagenment.schemas import (
     AssignmentCreate,
@@ -42,6 +45,7 @@ async def create_assignment(
         class_id=data.class_id,
         title=data.title,
         description=data.description,
+        kind=data.kind,
         deadline=data.deadline,
     )
     session.add(assignment)
@@ -70,6 +74,7 @@ async def create_teacher_assignment(
         class_id=data.class_id,
         title=data.title,
         description=data.description,
+        kind=data.kind,
         deadline=data.deadline,
     )
     session.add(assignment)
@@ -201,6 +206,7 @@ async def delete_assignment(
     session: AsyncSession, assignment_id: int
 ) -> None:
     await get_assignment(session, assignment_id)
+    await purge_files_for_assignments(session, Assignment.id == assignment_id)
     await session.execute(delete(Assignment).where(Assignment.id == assignment_id))
     await session.commit()
 
@@ -209,5 +215,6 @@ async def delete_teacher_assignment(
     session: AsyncSession, teacher_id: int, assignment_id: int
 ) -> None:
     await get_teacher_assignment(session, teacher_id, assignment_id)
+    await purge_files_for_assignments(session, Assignment.id == assignment_id)
     await session.execute(delete(Assignment).where(Assignment.id == assignment_id))
     await session.commit()
