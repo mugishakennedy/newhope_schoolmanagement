@@ -32,6 +32,14 @@ def _assignment_options() -> tuple:
     )
 
 
+def _ensure_not_quiz(assignment: Assignment) -> None:
+    if assignment.kind == "quiz":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This assignment is a quiz. Submit it from the quiz screen.",
+        )
+
+
 def _ensure_before_deadline(assignment: Assignment) -> None:
     if assignment.deadline is None:
         return
@@ -196,6 +204,7 @@ async def submit_assignment(
     data: SubmissionCreate,
 ) -> Submission:
     assignment = await get_student_assignment(session, student, assignment_id)
+    _ensure_not_quiz(assignment)
     _ensure_before_deadline(assignment)
     return await _upsert_submission(
         session, student, assignment, data.content_url
@@ -209,6 +218,7 @@ async def submit_assignment_file(
     upload: UploadFile,
 ) -> Submission:
     assignment = await get_student_assignment(session, student, assignment_id)
+    _ensure_not_quiz(assignment)
     _ensure_before_deadline(assignment)
     content_url = await save_submission_file(upload)
     return await _upsert_submission(
@@ -261,6 +271,7 @@ async def update_student_submission(
     data: SubmissionUpdate,
 ) -> Submission:
     submission = await _get_owned_submission(session, student, submission_id)
+    _ensure_not_quiz(submission.assignment)
     _ensure_before_deadline(submission.assignment)
 
     previous_url = submission.content_url

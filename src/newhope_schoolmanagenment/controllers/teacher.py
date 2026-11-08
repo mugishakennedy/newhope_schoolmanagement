@@ -4,6 +4,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from newhope_schoolmanagenment.controllers.attachment import (
+    purge_files_for_assignments,
+)
 from newhope_schoolmanagenment.core.security import hash_password
 from newhope_schoolmanagenment.models import (
     Assignment,
@@ -118,6 +121,9 @@ async def update_teacher(
 
 async def delete_teacher(session: AsyncSession, teacher_id: int) -> None:
     await get_teacher(session, teacher_id)
+    await purge_files_for_assignments(
+        session, Assignment.teacher_id == teacher_id
+    )
     await session.execute(delete(Teacher).where(Teacher.id == teacher_id))
     await session.commit()
 

@@ -1,4 +1,6 @@
 export type Role = 'student' | 'teacher' | 'dos'
+export type AssignmentKind = 'assignment' | 'quiz'
+export type QuestionKind = 'multiple_choice' | 'short_answer'
 
 export interface SessionUser {
   id: number
@@ -84,6 +86,7 @@ export interface StudentSummary {
 export interface AssignmentSummary {
   id: number
   title: string
+  kind: AssignmentKind
   deadline: string | null
   module: ModuleSummary
 }
@@ -102,7 +105,19 @@ export interface AssignmentRecord {
   class_id: number
   title: string
   description: string | null
+  kind: AssignmentKind
   deadline: string | null
+  created_at: string
+}
+
+export interface AssignmentAttachment {
+  id: number
+  assignment_id: number
+  uploaded_by_teacher_id: number | null
+  original_name: string
+  content_url: string
+  content_type: string | null
+  size_bytes: number
   created_at: string
 }
 
@@ -173,4 +188,81 @@ export interface TeacherDashboard {
 
 export interface MessageResponse {
   message: string
+}
+
+export interface QuizOptionRead {
+  id: number
+  position: number
+  text: string
+}
+
+export interface QuizOptionTeacherRead extends QuizOptionRead {
+  is_correct: boolean
+}
+
+export interface QuizQuestionRead {
+  id: number
+  position: number
+  prompt: string
+  kind: QuestionKind
+  points: string | number
+  options: QuizOptionRead[]
+}
+
+export interface QuizQuestionTeacherRead extends QuizQuestionRead {
+  correct_answer: string | null
+  options: QuizOptionTeacherRead[]
+}
+
+export interface QuizRead {
+  assignment_id: number
+  questions: QuizQuestionRead[]
+}
+
+export interface QuizTeacherRead {
+  assignment_id: number
+  questions: QuizQuestionTeacherRead[]
+}
+
+export interface QuizOptionInput {
+  text: string
+  is_correct: boolean
+}
+
+export interface QuizQuestionInput {
+  prompt: string
+  kind: QuestionKind
+  points: number
+  correct_answer: string | null
+  options: QuizOptionInput[]
+}
+
+export interface QuizPayload {
+  questions: QuizQuestionInput[]
+}
+
+export interface QuizAnswerInput {
+  question_id: number
+  selected_option_id: number | null
+  answer_text: string | null
+}
+
+export interface QuizAnswerRead {
+  id: number
+  question_id: number
+  selected_option_id: number | null
+  answer_text: string | null
+  is_correct: boolean
+  points_awarded: string | number
+}
+
+export interface QuizAttemptRead {
+  id: number
+  assignment_id: number
+  student_id: number
+  submission_id: number | null
+  score: string | number
+  max_score: string | number
+  submitted_at: string
+  answers: QuizAnswerRead[]
 }

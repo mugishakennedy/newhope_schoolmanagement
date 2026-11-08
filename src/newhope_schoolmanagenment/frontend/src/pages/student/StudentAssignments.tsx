@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 
-import { api, errorMessage } from '../../api/client'
+import { api, errorMessage, mediaUrl } from '../../api/client'
 import type {
+  AssignmentAttachment,
   AssignmentDetail,
   ModuleRead,
   SubmissionRead,
   SubmissionWithAssignment,
 } from '../../api/types'
+import { StudentQuiz } from '../../components/StudentQuiz'
 import {
   Alert,
   Badge,
@@ -50,6 +52,8 @@ export function StudentAssignments() {
 
   const [moduleFilter, setModuleFilter] = useState('all')
   const [active, setActive] = useState<AssignmentDetail | null>(null)
+  const [attachments, setAttachments] = useState<AssignmentAttachment[]>([])
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false)
   const [contentUrl, setContentUrl] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -70,20 +74,25 @@ export function StudentAssignments() {
   }, [portal.data, moduleFilter])
 
   function openSubmission(assignment: AssignmentDetail) {
-    if (isPast(assignment.deadline)) {
-      setError('The deadline for this assignment has passed.')
-      return
-    }
     const existing = submissionByAssignment.get(assignment.id)
     setActive(assignment)
     setContentUrl(existing?.content_url ?? '')
     setFile(null)
     setError(null)
+    setAttachments([])
+    setAttachmentsLoading(true)
+    api
+      .get<AssignmentAttachment[]>(
+        `/students/me/assignments/${assignment.id}/attachments`,
+      )
+      .then(setAttachments)
+      .catch((cause) => setError(errorMessage(cause)))
+      .finally(() => setAttachmentsLoading(false))
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!active) return
+    if (!active || isPast(active.deadline)) return
     setBusy(true)
     setError(null)
     try {
@@ -103,6 +112,7 @@ export function StudentAssignments() {
       setActive(null)
       setContentUrl('')
       setFile(null)
+      setAttachments([])
       portal.reload()
     } catch (cause) {
       setError(errorMessage(cause))
@@ -110,6 +120,8 @@ export function StudentAssignments() {
       setBusy(false)
     }
   }
+
+  const closed = active ? isPast(active.deadline) : false
 
   if (portal.loading) {
     return <Spinner label="Loading assignments" />
@@ -162,12 +174,15 @@ export function StudentAssignments() {
                 {assignments.map((assignment) => {
                   const submission = submissionByAssignment.get(assignment.id)
                   const status = submissionStatus(assignment, submission)
-                  const closed = isPast(assignment.deadline)
+                  const isClosed = isPast(assignment.deadline)
                   return (
                     <tr key={assignment.id}>
                       <td>
                         <div className="cell-main">
                           <strong>{assignment.title}</strong>
+                          {assignment.kind === 'quiz' ? (
+                            <Badge tone="info">Quiz</Badge>
+                          ) : null}
                           <small className="muted">
                             {assignment.teacher.full_name}
                           </small>
@@ -186,7 +201,7 @@ export function StudentAssignments() {
                       </td>
                       <td>
                         <div>{formatDate(assignment.deadline)}</div>
-                        {closed ? (
+                        {isClosed ? (
                           <small className="muted">Closed</small>
                         ) : null}
                       </td>
@@ -207,15 +222,18 @@ export function StudentAssignments() {
                       <td className="align-right">
                         <Button
                           size="sm"
-                          variant={submission ? 'secondary' : 'primary'}
-                          disabled={closed}
+                          variant={submission || isClosed ? 'secondary' : 'primary'}
                           onClick={() => openSubmission(assignment)}
                         >
-                          {closed
-                            ? 'Closed'
-                            : submission
-                              ? 'Update'
-                              : 'Submit'}
+                          {isClosed
+                            ? 'View'
+                            : assignment.kind === 'quiz'
+                              ? submission
+                                ? 'View result'
+                                : 'Start quiz'
+                              : submission
+                                ? 'Update'
+                                : 'Submit'}
                         </Button>
                       </td>
                     </tr>
@@ -239,36 +257,82 @@ export function StudentAssignments() {
           setActive(null)
           setFile(null)
           setError(null)
+          setAttachments([])
+          setAttachmentsLoading(false)
         }}
         footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setActive(null)
-                setFile(null)
-                setError(null)
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="submit-assignment-form"
-              busy={busy}
-              disabled={!file && !contentUrl.trim()}
-            >
-              Submit work
-            </Button>
-          </>
+          active?.kind === 'quiz' ? undefined : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setActive(null)
+                  setFile(null)
+                  setError(null)
+                  setAttachments([])
+                  setAttachmentsLoading(false)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="submit-assignment-form"
+                busy={busy}
+                disabled={closed || (!file && !contentUrl.trim())}
+              >
+                Submit work
+              </Button>
+            </>
+          )
         }
       >
+        {active?.kind === 'quiz' ? (
+          <StudentQuiz
+            assignment={active}
+            onSubmitted={() => {
+              portal.reload()
+              setActive(null)
+            }}
+          />
+        ) : (
         <form
           id="submit-assignment-form"
           className="form-stack"
           onSubmit={onSubmit}
         >
+          {closed ? (
+            <Alert tone="gold">
+              The deadline for this assignment has passed. You can still
+              download the resources below.
+            </Alert>
+          ) : null}
           {error ? <Alert>{error}</Alert> : null}
+          <div className="read-panel">
+            <span className="eyebrow">Resources</span>
+            {attachmentsLoading ? (
+              <p className="muted">Loading resources...</p>
+            ) : attachments.length === 0 ? (
+              <p className="muted">No files attached to this assignment.</p>
+            ) : (
+              <div className="attachment-list">
+                {attachments.map((attachment) => (
+                  <div className="attachment-item" key={attachment.id}>
+                    <div className="attachment-meta">
+                      <a
+                        href={mediaUrl(attachment.content_url)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {attachment.original_name}
+                      </a>
+                      <small>{attachment.content_type ?? 'Download'}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <Field
             label="Upload a file"
             hint="Choose a file from your device. Maximum size is 25 MB."
@@ -277,6 +341,7 @@ export function StudentAssignments() {
               className="file-input"
               type="file"
               accept=".pdf,.doc,.docx,.txt,.md,.ppt,.pptx,.xls,.xlsx,.csv,.zip,.png,.jpg,.jpeg,.gif,.webp"
+              disabled={closed}
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
           </Field>
@@ -289,7 +354,7 @@ export function StudentAssignments() {
               onChange={(event) => setContentUrl(event.target.value)}
               placeholder="https://..."
               rows={3}
-              disabled={file !== null}
+              disabled={closed || file !== null}
             />
           </Field>
           {file ? (
@@ -305,6 +370,7 @@ export function StudentAssignments() {
             </div>
           ) : null}
         </form>
+        )}
       </Modal>
     </div>
   )

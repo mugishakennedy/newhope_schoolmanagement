@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, File, UploadFile, status
 
 from newhope_schoolmanagenment.api.deps import (
     CurrentTeacher,
@@ -7,8 +9,16 @@ from newhope_schoolmanagenment.api.deps import (
 from newhope_schoolmanagenment.controllers import (
     assignment as assignment_controller,
 )
+from newhope_schoolmanagenment.controllers import (
+    attachment as attachment_controller,
+)
+from newhope_schoolmanagenment.controllers import quiz as quiz_controller
 from newhope_schoolmanagenment.controllers import teacher as teacher_controller
 from newhope_schoolmanagenment.schemas import (
+    AttachmentRead,
+    QuizAttemptRead,
+    QuizPayload,
+    QuizTeacherRead,
     SubmissionGradeUpdate,
     TeacherAssignmentCreate,
     TeacherAssignmentUpdate,
@@ -96,6 +106,112 @@ async def delete_teacher_assignment(
     )
 
 
+@router.get(
+    "/assignments/{assignment_id}/attachments",
+    response_model=list[AttachmentRead],
+)
+async def list_teacher_assignment_attachments(
+    assignment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+):
+    await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    return await attachment_controller.list_assignment_attachments(
+        session, assignment_id
+    )
+
+
+@router.post(
+    "/assignments/{assignment_id}/attachments",
+    response_model=AttachmentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_teacher_assignment_attachment(
+    assignment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+):
+    await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    return await attachment_controller.create_assignment_attachment(
+        session, assignment_id, current_teacher.id, file
+    )
+
+
+@router.delete(
+    "/assignments/{assignment_id}/attachments/{attachment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_teacher_assignment_attachment(
+    assignment_id: int,
+    attachment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> None:
+    await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    await attachment_controller.delete_assignment_attachment(
+        session, assignment_id, attachment_id
+    )
+
+
+@router.get(
+    "/assignments/{assignment_id}/quiz",
+    response_model=QuizTeacherRead,
+)
+async def read_teacher_quiz(
+    assignment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> QuizTeacherRead:
+    assignment = await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    questions = await quiz_controller.list_questions(session, assignment)
+    return QuizTeacherRead(
+        assignment_id=assignment.id, questions=questions
+    )
+
+
+@router.put(
+    "/assignments/{assignment_id}/quiz",
+    response_model=QuizTeacherRead,
+)
+async def replace_teacher_quiz(
+    assignment_id: int,
+    data: QuizPayload,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> QuizTeacherRead:
+    assignment = await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    questions = await quiz_controller.replace_quiz(session, assignment, data)
+    return QuizTeacherRead(
+        assignment_id=assignment.id, questions=questions
+    )
+
+
+@router.get(
+    "/assignments/{assignment_id}/quiz/attempts",
+    response_model=list[QuizAttemptRead],
+)
+async def list_teacher_quiz_attempts(
+    assignment_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> list[QuizAttemptRead]:
+    assignment = await assignment_controller.get_teacher_assignment(
+        session, current_teacher.id, assignment_id
+    )
+    return await quiz_controller.list_attempts(session, assignment)
+
+
 @router.get("/teaching-links", response_model=list[TeacherModuleRead])
 async def list_teacher_teaching_links(
     current_teacher: CurrentTeacher, session: SessionDep
@@ -154,6 +270,23 @@ async def read_teacher_submission(
 ):
     return await teacher_controller.get_teacher_submission(
         session, current_teacher.id, submission_id
+    )
+
+
+@router.get(
+    "/submissions/{submission_id}/quiz",
+    response_model=QuizAttemptRead,
+)
+async def read_teacher_submission_quiz(
+    submission_id: int,
+    current_teacher: CurrentTeacher,
+    session: SessionDep,
+) -> QuizAttemptRead:
+    submission = await teacher_controller.get_teacher_submission(
+        session, current_teacher.id, submission_id
+    )
+    return await quiz_controller.get_attempt_for_submission(
+        session, submission
     )
 
 

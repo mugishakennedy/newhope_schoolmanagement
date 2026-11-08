@@ -23,7 +23,6 @@ export function RegisterPage({
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
-  const [registrationNo, setRegistrationNo] = useState('')
   const [classId, setClassId] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -45,7 +44,6 @@ export function RegisterPage({
         full_name: fullName.trim(),
         email: email.trim(),
         password,
-        registration_no: registrationNo.trim(),
         class_id: classId ? Number(classId) : null,
       })
       navigate(`/${role}`)
@@ -70,8 +68,8 @@ export function RegisterPage({
           <span className="brand-kicker">Student registration</span>
           <h1>Your school record starts here.</h1>
           <p className="auth-lede">
-            Register once with your STP number. Your class, modules, teachers,
-            and assignments will be waiting in your portal.
+            Register once and access your class, modules, teachers, and
+            assignments in your portal.
           </p>
 
           <div className="auth-hero-card">
@@ -117,27 +115,16 @@ export function RegisterPage({
               />
             </Field>
 
-            <div className="form-grid">
-              <Field label="Email">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                />
-              </Field>
-
-              <Field label="STP number">
-                <Input
-                  value={registrationNo}
-                  onChange={(event) => setRegistrationNo(event.target.value)}
-                  placeholder="e.g. NH-S-0001"
-                  required
-                />
-              </Field>
-            </div>
+            <Field label="Email">
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+              />
+            </Field>
 
             <Field
               label="Class"
@@ -162,7 +149,7 @@ export function RegisterPage({
             </Field>
             {classes.loading ? <Spinner label="Loading classes" /> : null}
 
-            <div className="form-grid">
+            <div className="form-grid password-form-grid">
               <Field label="Password" hint="At least 8 characters.">
                 <Input
                   type="password"
@@ -194,8 +181,8 @@ export function RegisterPage({
           </form>
 
           <p className="auth-note">
-            By registering, you confirm that the STP number and class belong to
-            you. Contact the school office if something is wrong.
+            Contact the school office if your class placement needs to be
+            changed.
           </p>
         </div>
       </section>

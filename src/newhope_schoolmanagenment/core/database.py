@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import asyncpg
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -33,6 +34,13 @@ async def connect() -> None:
     _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            text(
+                "ALTER TABLE assignments "
+                "ADD COLUMN IF NOT EXISTS kind VARCHAR(20) "
+                "NOT NULL DEFAULT 'assignment'"
+            )
+        )
     print("successfully connected to database")
 
 

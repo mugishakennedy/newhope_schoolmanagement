@@ -6,7 +6,6 @@ export interface RegisterStudentInput {
   full_name: string
   email: string
   password: string
-  registration_no: string
   class_id: number | null
 }
 

@@ -3,7 +3,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from newhope_schoolmanagenment.models import Module
+from newhope_schoolmanagenment.controllers.attachment import (
+    purge_files_for_assignments,
+)
+from newhope_schoolmanagenment.models import Assignment, Module
 from newhope_schoolmanagenment.schemas import ModuleCreate, ModuleUpdate
 
 
@@ -89,5 +92,6 @@ async def update_module(
 
 async def delete_module(session: AsyncSession, module_id: int) -> None:
     await get_module(session, module_id)
+    await purge_files_for_assignments(session, Assignment.module_id == module_id)
     await session.execute(delete(Module).where(Module.id == module_id))
     await session.commit()
