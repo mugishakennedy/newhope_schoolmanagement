@@ -20,3 +20,9 @@ pyproject.toml
 .DS_Store
 .idea/
 .vscode/
+
+# Uploaded files
+uploads/
+
+# Local project guide
+PROJECT_GUIDE.md
